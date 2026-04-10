@@ -28,7 +28,7 @@ import { getWeekDays } from '@/lib/program-generator';
 import { buildAnalysisPrompt } from '@/lib/ai-prompts';
 import { getExerciseNote } from '@/lib/exercise-notes';
 import { TAG_LABELS, TAG_COLORS, PHASE_LABELS, PHASE_COLORS } from '@/lib/constants';
-import type { GeneratedProgram, WorkoutDay, Exercise, WorkoutLog, LoggedSet } from '@/lib/types';
+import type { GeneratedProgram, WorkoutDay, Exercise, WorkoutLog, LoggedSet, Phase } from '@/lib/types';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -113,9 +113,10 @@ interface SetInputProps {
   logged: LoggedSet | undefined;
   onUpdate: (set: LoggedSet) => void;
   onSetDone?: () => void;
+  targetRPE?: string;
 }
 
-function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate, onSetDone }: SetInputProps) {
+function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate, onSetDone, targetRPE }: SetInputProps) {
   const [actualWeight, setActualWeight] = useState(logged?.actualWeight ?? plannedWeight);
   const [actualReps, setActualReps] = useState(logged?.actualReps ?? plannedReps);
   const [rpe, setRpe] = useState(logged?.rpe ?? 0);
@@ -160,7 +161,7 @@ function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate, onSe
         value={rpe || ''}
         onChange={(e) => setRpe(Number(e.target.value))}
         className="h-9 text-center"
-        placeholder="RPE"
+        placeholder={targetRPE ?? 'RPE'}
         min={1}
         max={10}
       />
@@ -169,16 +170,52 @@ function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate, onSe
   );
 }
 
+/** Target RPE based on training phase and exercise role */
+function getTargetRPE(phase: Phase, tag: Exercise['tag'], isBackoff?: boolean): string {
+  if (isBackoff) {
+    // Backoff sets are always lighter — lower RPE target
+    return phase === 'peaking' ? '7-8' : '6-7';
+  }
+  switch (tag) {
+    case 'main':
+      switch (phase) {
+        case 'hypertrophy': return '7-8';
+        case 'strength': return '8-9';
+        case 'peaking': return '9-9.5';
+        case 'test': return '10';
+        case 'deload': return '6-7';
+      }
+      break;
+    case 'volume':
+      switch (phase) {
+        case 'hypertrophy': return '7-8';
+        case 'strength': return '7-8';
+        case 'peaking': return '8';
+        case 'deload': return '6';
+        default: return '7-8';
+      }
+      break;
+    case 'technical':
+      return phase === 'deload' ? '5-6' : '6-7';
+    case 'accessory':
+    case 'supplemental':
+      return phase === 'deload' ? '6' : '7-8';
+  }
+  return '7-8';
+}
+
 function ExerciseCard({
   exercise,
   loggedSets,
   onUpdateSet,
   suggestedWeight,
+  phase,
 }: {
   exercise: Exercise;
   loggedSets: LoggedSet[];
   onUpdateSet: (exerciseId: string, set: LoggedSet) => void;
   suggestedWeight?: number | null;
+  phase: Phase;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
@@ -207,6 +244,8 @@ function ExerciseCard({
 
   const hasBackoff = backoffSets.length > 0;
   const restTime = exercise.tag === 'main' || exercise.tag === 'technical' ? 210 : 150;
+  const targetRPE = getTargetRPE(phase, exercise.tag);
+  const backoffTargetRPE = getTargetRPE(phase, exercise.tag, true);
 
   const setsHeader = (
     <div className="grid grid-cols-[2rem_1fr_auto_1fr_1fr_1.5rem] items-center gap-1.5 text-xs text-muted-foreground mb-1">
@@ -275,6 +314,7 @@ function ExerciseCard({
               logged={loggedSets.find((ls) => ls.setNumber === i + 1)}
               onUpdate={(set) => onUpdateSet(exercise.id, { ...set, exerciseId: exercise.id, setNumber: i + 1 })}
               onSetDone={() => setRestTrigger((t) => t + 1)}
+              targetRPE={targetRPE}
             />
           ))}
 
@@ -297,6 +337,7 @@ function ExerciseCard({
                     logged={loggedSets.find((ls) => ls.setNumber === globalIndex + 1)}
                     onUpdate={(set) => onUpdateSet(exercise.id, { ...set, exerciseId: exercise.id, setNumber: globalIndex + 1 })}
                     onSetDone={() => setRestTrigger((t) => t + 1)}
+                    targetRPE={backoffTargetRPE}
                   />
                 );
               })}
@@ -510,6 +551,7 @@ export default function WorkoutPage() {
               ? getSuggestedWeight(accProgress, ex.name)
               : undefined
           }
+          phase={weekInfo.phase}
         />
       ))}
 
