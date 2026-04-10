@@ -14,13 +14,13 @@ export default function RootPage() {
   const { user } = useUser();
 
   useEffect(() => {
-    if (!isReady || !user) return;
+    if (!isReady || !user || !sb) return;
 
     async function init() {
       // Attempt localStorage → Supabase migration for returning users
-      await migrateLocalStorageToSupabase(sb, user!.id);
+      await migrateLocalStorageToSupabase(sb!, user!.id);
 
-      const { data } = await sb
+      const { data } = await sb!
         .from('user_settings')
         .select('onboarding_complete')
         .eq('clerk_user_id', user!.id)

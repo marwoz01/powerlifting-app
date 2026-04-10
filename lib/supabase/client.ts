@@ -2,13 +2,17 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { useSession } from '@clerk/nextjs';
 import { useMemo } from 'react';
 
-export function useSupabaseClient(): SupabaseClient {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+export function useSupabaseClient(): SupabaseClient | null {
   const { session } = useSession();
 
   return useMemo(() => {
+    if (!supabaseUrl || !supabaseAnonKey) return null;
     return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
           fetch: async (url, options = {}) => {

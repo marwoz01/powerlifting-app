@@ -38,44 +38,44 @@ export function useStorage() {
 
   return {
     userId,
-    isReady: !!user,
+    isReady: !!user && !!sb,
 
     // Settings
-    getUserSettings: () => getUserSettings(sb, userId),
-    saveUserSettings: (s: UserSettings) => saveUserSettings(sb, userId, s),
-    isOnboardingComplete: () => isOnboardingComplete(sb, userId),
+    getUserSettings: () => sb ? getUserSettings(sb, userId) : Promise.resolve(null),
+    saveUserSettings: (s: UserSettings) => sb ? saveUserSettings(sb, userId, s) : Promise.resolve(),
+    isOnboardingComplete: () => sb ? isOnboardingComplete(sb, userId) : Promise.resolve(false),
 
     // Program
-    getProgram: () => getProgram(sb, userId),
-    saveProgram: (p: GeneratedProgram) => saveProgram(sb, userId, p),
+    getProgram: () => sb ? getProgram(sb, userId) : Promise.resolve(null),
+    saveProgram: (p: GeneratedProgram) => sb ? saveProgram(sb, userId, p) : Promise.resolve(),
     swapExerciseInProgram: (oldName: string, newName: string, newNote?: string) =>
-      swapExerciseInProgram(sb, userId, oldName, newName, newNote),
+      sb ? swapExerciseInProgram(sb, userId, oldName, newName, newNote) : Promise.resolve(),
 
     // Workout Logs
-    getWorkoutLogs: () => getWorkoutLogs(sb, userId),
-    saveWorkoutLog: (log: WorkoutLog) => saveWorkoutLog(sb, userId, log),
-    getWorkoutLog: (week: number, day: number) => getWorkoutLog(sb, userId, week, day),
+    getWorkoutLogs: () => sb ? getWorkoutLogs(sb, userId) : Promise.resolve([]),
+    saveWorkoutLog: (log: WorkoutLog) => sb ? saveWorkoutLog(sb, userId, log) : Promise.resolve(),
+    getWorkoutLog: (week: number, day: number) => sb ? getWorkoutLog(sb, userId, week, day) : Promise.resolve(null),
 
     // History
-    archiveCurrentProgram: () => archiveCurrentProgram(sb, userId),
-    getProgramHistory: () => getProgramHistory(sb, userId),
-    clearCurrentCycle: () => clearCurrentCycle(sb, userId),
+    archiveCurrentProgram: () => sb ? archiveCurrentProgram(sb, userId) : Promise.resolve(),
+    getProgramHistory: () => sb ? getProgramHistory(sb, userId) : Promise.resolve([]),
+    clearCurrentCycle: () => sb ? clearCurrentCycle(sb, userId) : Promise.resolve(),
 
     // Accessory Progression
-    getAccessoryProgress: () => getAccessoryProgress(sb, userId),
+    getAccessoryProgress: () => sb ? getAccessoryProgress(sb, userId) : Promise.resolve({}),
     saveAccessoryProgress: (state: AccessoryProgressionState) =>
-      saveAccessoryProgress(sb, userId, state),
+      sb ? saveAccessoryProgress(sb, userId, state) : Promise.resolve(),
 
     // Active Workout
-    getActiveWorkout: () => getActiveWorkout(sb, userId),
-    setActiveWorkout: (w: ActiveWorkout) => setActiveWorkout(sb, userId, w),
-    clearActiveWorkout: () => clearActiveWorkout(sb, userId),
+    getActiveWorkout: () => sb ? getActiveWorkout(sb, userId) : Promise.resolve(null),
+    setActiveWorkout: (w: ActiveWorkout) => sb ? setActiveWorkout(sb, userId, w) : Promise.resolve(),
+    clearActiveWorkout: () => sb ? clearActiveWorkout(sb, userId) : Promise.resolve(),
 
     // API Keys (write-only)
     saveApiKeys: (keys: { anthropicKey?: string; openrouterKey?: string; geminiKey?: string }) =>
-      saveApiKeys(sb, userId, keys),
+      sb ? saveApiKeys(sb, userId, keys) : Promise.resolve(),
 
     // Autoregulation
-    runAutoregulation: (completedWeek: number) => runAutoregulation(sb, userId, completedWeek),
+    runAutoregulation: (completedWeek: number) => sb ? runAutoregulation(sb, userId, completedWeek) : Promise.resolve(),
   };
 }
