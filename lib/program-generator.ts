@@ -1,11 +1,12 @@
 import type { UserSettings, GeneratedProgram, WorkoutDay, Exercise, OneRepMaxes, Phase } from './types';
 import { getWeekSchemeForLevel } from './constants';
-import { getTrainingLevel } from './calculations';
 import {
+  getTrainingLevel,
   getTopsetWeight,
   getBackoffWeight,
   getVolumeWeight,
   getTechnicalWeight,
+  roundTo2_5,
 } from './calculations';
 
 function generateId(): string {
@@ -190,8 +191,10 @@ function buildDayFromTemplate(
         case 'topset':
           ex.plannedSets = tmpl.fixedSets ?? mainTopsetSets;
           ex.plannedWeight = getTopsetWeight(oneRM, percentage);
-          // No backoff on test week
-          if (tmpl.hasBackoff && !isTest) {
+          // Backoff only in strength and peaking phases (not hypertrophy, deload, or test)
+          // In hypertrophy the backoff weight is too light to be useful
+          // In deload/test we want minimal volume
+          if (tmpl.hasBackoff && (phase === 'strength' || phase === 'peaking')) {
             ex.isBackoff = true;
             ex.backoffSets = tmpl.fixedSets ?? mainBackoffSets;
             ex.backoffReps = (tmpl.fixedReps ?? weekReps) + 2;
@@ -202,7 +205,10 @@ function buildDayFromTemplate(
           // Volume always follows periodization — ignore fixedSets/fixedReps
           ex.plannedSets = volumeSets;
           ex.plannedReps = weekReps + 1;
-          ex.plannedWeight = getVolumeWeight(oneRM, percentage);
+          // On deload: use raw percentage - 10% without the floor (lighter is the point)
+          ex.plannedWeight = phase === 'deload'
+            ? roundTo2_5(oneRM * Math.max(percentage - 0.10, 0.50))
+            : getVolumeWeight(oneRM, percentage);
           break;
         case 'technical':
           ex.plannedWeight = getTechnicalWeight(oneRM);

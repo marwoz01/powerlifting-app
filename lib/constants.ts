@@ -1,60 +1,100 @@
 import { type Phase, type ProgramWeek, type TrainingLevel } from './types';
 
-/** Beginner: 16 weeks — more hypertrophy volume, higher reps, lower percentages */
+/**
+ * Beginner: 16 weeks — more hypertrophy volume, higher reps, lower percentages.
+ *
+ * Volume progression within phases:
+ * - Hypertrophy: sets ramp up 2→3→4→4→4, building work capacity
+ * - Deload: minimal volume (2 sets), no backoff
+ * - Strength: moderate volume 3→3→3→3, higher intensity
+ * - Peaking: volume tapers 3→2→2→2
+ * - Test: 1×1 only
+ */
 export const BEGINNER_WEEK_SCHEME: ProgramWeek[] = [
-  { weekNumber: 1,  phase: 'hypertrophy', sets: 4, reps: 8, percentage: 0.65, isDeload: false },
-  { weekNumber: 2,  phase: 'hypertrophy', sets: 4, reps: 8, percentage: 0.67, isDeload: false },
+  // Hypertrophy block — volume ramps up
+  { weekNumber: 1,  phase: 'hypertrophy', sets: 2, reps: 8, percentage: 0.65, isDeload: false },
+  { weekNumber: 2,  phase: 'hypertrophy', sets: 3, reps: 8, percentage: 0.67, isDeload: false },
   { weekNumber: 3,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.70, isDeload: false },
   { weekNumber: 4,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.72, isDeload: false },
-  { weekNumber: 5,  phase: 'hypertrophy', sets: 3, reps: 6, percentage: 0.74, isDeload: false },
-  { weekNumber: 6,  phase: 'deload',      sets: 3, reps: 5, percentage: 0.60, isDeload: true, isScheduledDeload: true },
-  { weekNumber: 7,  phase: 'strength',    sets: 4, reps: 5, percentage: 0.76, isDeload: false },
-  { weekNumber: 8,  phase: 'strength',    sets: 4, reps: 5, percentage: 0.78, isDeload: false },
-  { weekNumber: 9,  phase: 'strength',    sets: 4, reps: 4, percentage: 0.80, isDeload: false },
-  { weekNumber: 10, phase: 'strength',    sets: 4, reps: 4, percentage: 0.82, isDeload: false },
-  { weekNumber: 11, phase: 'deload',      sets: 3, reps: 3, percentage: 0.65, isDeload: true, isScheduledDeload: true },
+  { weekNumber: 5,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.74, isDeload: false },
+  // Deload — minimal volume
+  { weekNumber: 6,  phase: 'deload',      sets: 2, reps: 5, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Strength block — moderate volume, higher intensity
+  { weekNumber: 7,  phase: 'strength',    sets: 3, reps: 5, percentage: 0.76, isDeload: false },
+  { weekNumber: 8,  phase: 'strength',    sets: 3, reps: 5, percentage: 0.78, isDeload: false },
+  { weekNumber: 9,  phase: 'strength',    sets: 3, reps: 4, percentage: 0.80, isDeload: false },
+  { weekNumber: 10, phase: 'strength',    sets: 3, reps: 4, percentage: 0.82, isDeload: false },
+  // Deload
+  { weekNumber: 11, phase: 'deload',      sets: 2, reps: 3, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Peaking block — volume tapers, intensity rises
   { weekNumber: 12, phase: 'peaking',     sets: 3, reps: 3, percentage: 0.85, isDeload: false },
-  { weekNumber: 13, phase: 'peaking',     sets: 3, reps: 2, percentage: 0.88, isDeload: false },
+  { weekNumber: 13, phase: 'peaking',     sets: 2, reps: 2, percentage: 0.88, isDeload: false },
   { weekNumber: 14, phase: 'peaking',     sets: 2, reps: 2, percentage: 0.90, isDeload: false },
   { weekNumber: 15, phase: 'peaking',     sets: 2, reps: 1, percentage: 0.93, isDeload: false },
+  // Test
   { weekNumber: 16, phase: 'test',        sets: 1, reps: 1, percentage: 1.00, isDeload: true },
 ];
 
-/** Intermediate: 14 weeks — balanced periodization (existing scheme) */
+/**
+ * Intermediate: 14 weeks — balanced periodization.
+ *
+ * - Hypertrophy: 3→3→4→4 sets
+ * - Strength: 3→3→3→3 sets
+ * - Peaking: 3→2→2 sets
+ */
 export const WEEK_SCHEME: ProgramWeek[] = [
-  { weekNumber: 1,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.72, isDeload: false },
-  { weekNumber: 2,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.75, isDeload: false },
+  // Hypertrophy block
+  { weekNumber: 1,  phase: 'hypertrophy', sets: 3, reps: 6, percentage: 0.72, isDeload: false },
+  { weekNumber: 2,  phase: 'hypertrophy', sets: 3, reps: 6, percentage: 0.75, isDeload: false },
   { weekNumber: 3,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.77, isDeload: false },
   { weekNumber: 4,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.79, isDeload: false },
-  { weekNumber: 5,  phase: 'deload',      sets: 3, reps: 4, percentage: 0.65, isDeload: true, isScheduledDeload: true },
-  { weekNumber: 6,  phase: 'strength',    sets: 4, reps: 4, percentage: 0.80, isDeload: false },
-  { weekNumber: 7,  phase: 'strength',    sets: 4, reps: 4, percentage: 0.83, isDeload: false },
-  { weekNumber: 8,  phase: 'strength',    sets: 4, reps: 3, percentage: 0.85, isDeload: false },
-  { weekNumber: 9,  phase: 'strength',    sets: 4, reps: 3, percentage: 0.87, isDeload: false },
-  { weekNumber: 10, phase: 'deload',      sets: 3, reps: 3, percentage: 0.72, isDeload: true, isScheduledDeload: true },
+  // Deload
+  { weekNumber: 5,  phase: 'deload',      sets: 2, reps: 4, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Strength block
+  { weekNumber: 6,  phase: 'strength',    sets: 3, reps: 4, percentage: 0.80, isDeload: false },
+  { weekNumber: 7,  phase: 'strength',    sets: 3, reps: 4, percentage: 0.83, isDeload: false },
+  { weekNumber: 8,  phase: 'strength',    sets: 3, reps: 3, percentage: 0.85, isDeload: false },
+  { weekNumber: 9,  phase: 'strength',    sets: 3, reps: 3, percentage: 0.87, isDeload: false },
+  // Deload
+  { weekNumber: 10, phase: 'deload',      sets: 2, reps: 3, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Peaking block
   { weekNumber: 11, phase: 'peaking',     sets: 3, reps: 3, percentage: 0.88, isDeload: false },
-  { weekNumber: 12, phase: 'peaking',     sets: 3, reps: 2, percentage: 0.91, isDeload: false },
+  { weekNumber: 12, phase: 'peaking',     sets: 2, reps: 2, percentage: 0.91, isDeload: false },
   { weekNumber: 13, phase: 'peaking',     sets: 2, reps: 1, percentage: 0.95, isDeload: false },
+  // Test
   { weekNumber: 14, phase: 'test',        sets: 1, reps: 1, percentage: 1.00, isDeload: true  },
 ];
 
-/** Advanced: 16 weeks — higher starting %, extended peaking */
+/**
+ * Advanced: 16 weeks — higher starting %, extended peaking.
+ *
+ * - Hypertrophy: 3→3→4 sets (shorter block, already strong base)
+ * - Strength: 3→3→3→3 sets
+ * - Peaking: 3→3→2→2→2 sets (longer taper)
+ */
 export const ADVANCED_WEEK_SCHEME: ProgramWeek[] = [
-  { weekNumber: 1,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.75, isDeload: false },
-  { weekNumber: 2,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.77, isDeload: false },
+  // Hypertrophy block (shorter for advanced)
+  { weekNumber: 1,  phase: 'hypertrophy', sets: 3, reps: 5, percentage: 0.75, isDeload: false },
+  { weekNumber: 2,  phase: 'hypertrophy', sets: 3, reps: 5, percentage: 0.77, isDeload: false },
   { weekNumber: 3,  phase: 'hypertrophy', sets: 4, reps: 4, percentage: 0.79, isDeload: false },
-  { weekNumber: 4,  phase: 'deload',      sets: 3, reps: 4, percentage: 0.65, isDeload: true, isScheduledDeload: true },
-  { weekNumber: 5,  phase: 'strength',    sets: 4, reps: 3, percentage: 0.82, isDeload: false },
-  { weekNumber: 6,  phase: 'strength',    sets: 4, reps: 3, percentage: 0.85, isDeload: false },
-  { weekNumber: 7,  phase: 'strength',    sets: 4, reps: 2, percentage: 0.87, isDeload: false },
+  // Deload
+  { weekNumber: 4,  phase: 'deload',      sets: 2, reps: 4, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Strength block
+  { weekNumber: 5,  phase: 'strength',    sets: 3, reps: 3, percentage: 0.82, isDeload: false },
+  { weekNumber: 6,  phase: 'strength',    sets: 3, reps: 3, percentage: 0.85, isDeload: false },
+  { weekNumber: 7,  phase: 'strength',    sets: 3, reps: 2, percentage: 0.87, isDeload: false },
   { weekNumber: 8,  phase: 'strength',    sets: 3, reps: 2, percentage: 0.89, isDeload: false },
-  { weekNumber: 9,  phase: 'deload',      sets: 3, reps: 2, percentage: 0.70, isDeload: true, isScheduledDeload: true },
+  // Deload
+  { weekNumber: 9,  phase: 'deload',      sets: 2, reps: 2, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Peaking block (extended for advanced)
   { weekNumber: 10, phase: 'peaking',     sets: 3, reps: 2, percentage: 0.90, isDeload: false },
   { weekNumber: 11, phase: 'peaking',     sets: 3, reps: 1, percentage: 0.92, isDeload: false },
   { weekNumber: 12, phase: 'peaking',     sets: 2, reps: 1, percentage: 0.94, isDeload: false },
   { weekNumber: 13, phase: 'peaking',     sets: 2, reps: 1, percentage: 0.96, isDeload: false },
-  { weekNumber: 14, phase: 'peaking',     sets: 1, reps: 1, percentage: 0.97, isDeload: false },
-  { weekNumber: 15, phase: 'deload',      sets: 2, reps: 1, percentage: 0.75, isDeload: true, isScheduledDeload: true },
+  { weekNumber: 14, phase: 'peaking',     sets: 2, reps: 1, percentage: 0.97, isDeload: false },
+  // Deload before test (taper)
+  { weekNumber: 15, phase: 'deload',      sets: 2, reps: 1, percentage: 0.60, isDeload: true, isScheduledDeload: true },
+  // Test
   { weekNumber: 16, phase: 'test',        sets: 1, reps: 1, percentage: 1.00, isDeload: true },
 ];
 
