@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, ChevronDown, ChevronUp } from 'lucide-react';
-import { getWorkoutLogs, getProgram } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { getWeekDays } from '@/lib/program-generator';
 import { PHASE_LABELS, PHASE_COLORS } from '@/lib/constants';
 import type { WorkoutLog, GeneratedProgram } from '@/lib/types';
@@ -19,7 +19,6 @@ function WorkoutDetail({ log, program }: { log: WorkoutLog; program: GeneratedPr
     ? Math.round((new Date(log.endTime).getTime() - new Date(log.startTime).getTime()) / 60000)
     : null;
 
-  // Get workout focus
   let focus = '';
   if (program) {
     const days = getWeekDays(program, log.weekNumber);
@@ -27,7 +26,6 @@ function WorkoutDetail({ log, program }: { log: WorkoutLog; program: GeneratedPr
     if (day) focus = day.focus;
   }
 
-  // Group sets by exercise
   const exerciseSets = new Map<string, typeof log.sets>();
   for (const set of log.sets) {
     const existing = exerciseSets.get(set.exerciseId) ?? [];
@@ -35,7 +33,6 @@ function WorkoutDetail({ log, program }: { log: WorkoutLog; program: GeneratedPr
     exerciseSets.set(set.exerciseId, existing);
   }
 
-  // Get exercise names from program
   const exerciseNames = new Map<string, string>();
   if (program) {
     const days = getWeekDays(program, log.weekNumber);
@@ -115,16 +112,36 @@ function WorkoutDetail({ log, program }: { log: WorkoutLog; program: GeneratedPr
 }
 
 export default function HistoryPage() {
+  const storage = useStorage();
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const allLogs = getWorkoutLogs()
-      .filter((l) => l.completed)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setLogs(allLogs);
-    setProgram(getProgram());
-  }, []);
+    if (!storage.isReady) return;
+    async function load() {
+      const [allLogs, prog] = await Promise.all([
+        storage.getWorkoutLogs(),
+        storage.getProgram(),
+      ]);
+      setLogs(
+        allLogs
+          .filter((l) => l.completed)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      );
+      setProgram(prog);
+      setLoading(false);
+    }
+    load();
+  }, [storage.isReady]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-muted-foreground">Ładowanie...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">

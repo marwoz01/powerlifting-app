@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Send, Bot, User, Loader2, AlertCircle, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { getAnthropicKey, getApiKey, getGeminiKey, getUserSettings, getProgram, getWorkoutLogs } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { buildCoachSystemPrompt } from '@/lib/ai-prompts';
 import type { UserSettings, GeneratedProgram, WorkoutLog } from '@/lib/types';
 
@@ -17,9 +17,8 @@ interface ChatMessage {
 }
 
 export default function CoachPage() {
-  const [anthropicKey, setAnthropicKey] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [geminiKey, setGeminiKey] = useState('');
+  const storage = useStorage();
+  const [hasKeys, setHasKeys] = useState<boolean | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
@@ -30,23 +29,34 @@ export default function CoachPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setAnthropicKey(getAnthropicKey());
-    setApiKey(getApiKey());
-    setGeminiKey(getGeminiKey());
-    setSettings(getUserSettings());
-    setProgram(getProgram());
-    const allLogs = getWorkoutLogs()
-      .filter((l) => l.completed)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setLogs(allLogs);
-  }, []);
+    if (!storage.isReady) return;
+    async function load() {
+      // Check if user has any API keys (server-side check)
+      const res = await fetch('/api/keys');
+      const data = await res.json();
+      setHasKeys(data.hasAnthropic || data.hasOpenRouter || data.hasGemini);
+
+      const [s, p, l] = await Promise.all([
+        storage.getUserSettings(),
+        storage.getProgram(),
+        storage.getWorkoutLogs(),
+      ]);
+      setSettings(s);
+      setProgram(p);
+      setLogs(
+        l.filter((x) => x.completed)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      );
+    }
+    load();
+  }, [storage.isReady]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || loading || (!anthropicKey && !apiKey && !geminiKey) || !settings) return;
+    if (!input.trim() || loading || !hasKeys || !settings) return;
 
     const userMessage: ChatMessage = { role: 'user', content: input.trim() };
     const newMessages = [...messages, userMessage];
@@ -62,9 +72,6 @@ export default function CoachPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          anthropicKey,
-          apiKey,
-          geminiKey,
           systemPrompt,
           messages: newMessages.map((m) => ({
             role: m.role,
@@ -95,7 +102,15 @@ export default function CoachPage() {
     }
   };
 
-  if (!anthropicKey && !apiKey && !geminiKey) {
+  if (hasKeys === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-muted-foreground">Ładowanie...</div>
+      </div>
+    );
+  }
+
+  if (!hasKeys) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
         <Bot className="size-12 mx-auto text-muted-foreground mb-4" />
@@ -115,7 +130,6 @@ export default function CoachPage() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Bot className="size-5" />
@@ -127,7 +141,6 @@ export default function CoachPage() {
         </p>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && (
           <div className="text-center py-12">
@@ -166,9 +179,7 @@ export default function CoachPage() {
             )}
             <Card
               className={`max-w-[80%] ${
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : ''
+                msg.role === 'user' ? 'bg-primary text-primary-foreground' : ''
               }`}
             >
               <CardContent className="py-2.5 px-3.5">
@@ -206,7 +217,6 @@ export default function CoachPage() {
         <div ref={scrollRef} />
       </div>
 
-      {/* Input */}
       <div className="border-t border-border p-4 pb-20 md:pb-4">
         <div className="flex gap-2">
           <Textarea

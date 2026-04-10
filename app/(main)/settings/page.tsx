@@ -9,26 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Save, RotateCcw, Eye, EyeOff, CheckCircle2, Key } from 'lucide-react';
-import {
-  getUserSettings,
-  saveUserSettings,
-  saveProgram,
-  getProgram,
-  archiveCurrentProgram,
-  clearCurrentCycle,
-  getAnthropicKey,
-  saveAnthropicKey,
-  getApiKey,
-  saveApiKey,
-  getGeminiKey,
-  saveGeminiKey,
-} from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { generateProgram } from '@/lib/program-generator';
 import { recalculateWeights } from '@/lib/autoregulation';
 import type { UserSettings } from '@/lib/types';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const storage = useStorage();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [anthropicKey, setAnthropicKeyState] = useState('');
   const [apiKey, setApiKeyState] = useState('');
@@ -41,59 +29,62 @@ export default function SettingsPage() {
   const [keySaved, setKeySaved] = useState(false);
   const [geminiKeySaved, setGeminiKeySaved] = useState(false);
   const [showNewCycleModal, setShowNewCycleModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSettings(getUserSettings());
-    setAnthropicKeyState(getAnthropicKey());
-    setApiKeyState(getApiKey());
-    setGeminiKeyState(getGeminiKey());
-  }, []);
+    if (!storage.isReady) return;
+    async function load() {
+      const s = await storage.getUserSettings();
+      setSettings(s);
+      setLoading(false);
+    }
+    load();
+  }, [storage.isReady]);
 
-  if (!settings) return null;
+  if (loading || !settings) return null;
 
-  const handleSaveProfile = () => {
-    saveUserSettings(settings);
+  const handleSaveProfile = async () => {
+    await storage.saveUserSettings(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSave1RM = () => {
-    saveUserSettings(settings);
-    // Recalculate weights in existing program (preserves AI-generated exercises)
-    const existingProgram = getProgram();
+  const handleSave1RM = async () => {
+    await storage.saveUserSettings(settings);
+    const existingProgram = await storage.getProgram();
     if (existingProgram) {
       const updated = recalculateWeights(existingProgram, 1, settings.oneRepMaxes);
       updated.baseOneRepMaxes = { ...settings.oneRepMaxes };
-      saveProgram(updated);
+      await storage.saveProgram(updated);
     } else {
       const program = generateProgram(settings);
-      saveProgram(program);
+      await storage.saveProgram(program);
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleSaveAnthropicKey = () => {
-    saveAnthropicKey(anthropicKey);
+  const handleSaveAnthropicKey = async () => {
+    await storage.saveApiKeys({ anthropicKey });
     setAnthropicKeySaved(true);
     setTimeout(() => setAnthropicKeySaved(false), 2000);
   };
 
-  const handleSaveApiKey = () => {
-    saveApiKey(apiKey);
+  const handleSaveApiKey = async () => {
+    await storage.saveApiKeys({ openrouterKey: apiKey });
     setKeySaved(true);
     setTimeout(() => setKeySaved(false), 2000);
   };
 
-  const handleSaveGeminiKey = () => {
-    saveGeminiKey(geminiKey);
+  const handleSaveGeminiKey = async () => {
+    await storage.saveApiKeys({ geminiKey });
     setGeminiKeySaved(true);
     setTimeout(() => setGeminiKeySaved(false), 2000);
   };
 
-  const handleNewCycle = () => {
-    archiveCurrentProgram();
-    clearCurrentCycle();
+  const handleNewCycle = async () => {
+    await storage.archiveCurrentProgram();
+    await storage.clearCurrentCycle();
     router.push('/onboarding');
   };
 
@@ -135,11 +126,6 @@ export default function SettingsPage() {
               {anthropicKeySaved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
             </Button>
           </div>
-          {anthropicKey && (
-            <Badge variant="secondary" className="text-xs">
-              Klucz zapisany
-            </Badge>
-          )}
         </CardContent>
       </Card>
 
@@ -176,11 +162,6 @@ export default function SettingsPage() {
               {keySaved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
             </Button>
           </div>
-          {apiKey && (
-            <Badge variant="secondary" className="text-xs">
-              Klucz zapisany
-            </Badge>
-          )}
         </CardContent>
       </Card>
 
@@ -217,11 +198,6 @@ export default function SettingsPage() {
               {geminiKeySaved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
             </Button>
           </div>
-          {geminiKey && (
-            <Badge variant="secondary" className="text-xs">
-              Klucz zapisany
-            </Badge>
-          )}
         </CardContent>
       </Card>
 
@@ -334,7 +310,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-3">
-            Po zakończeniu 14 tygodni wygeneruj nowy cykl. Historia poprzedniego zostanie zachowana.
+            Po zakończeniu cyklu wygeneruj nowy. Historia poprzedniego zostanie zachowana.
           </p>
           <Button onClick={() => setShowNewCycleModal(true)} variant="outline" className="w-full h-11">
             <RotateCcw className="size-4 mr-2" />
@@ -343,7 +319,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* New cycle confirmation modal */}
       {showNewCycleModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
           <div className="bg-background rounded-xl shadow-xl p-6 max-w-sm w-full space-y-4">

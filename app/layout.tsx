@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
+import { plPL } from '@clerk/localizations';
 import './globals.css';
 
 const inter = Inter({
@@ -18,8 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
-    </html>
+    <ClerkProvider localization={plPL}>
+      <html lang="pl" className={`${inter.variable} h-full antialiased`}>
+        <body className="min-h-full flex flex-col font-sans">{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

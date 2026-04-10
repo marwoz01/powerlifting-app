@@ -6,22 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Save, CheckCircle2, Key } from 'lucide-react';
-import { getAnthropicKey, saveAnthropicKey, getGeminiKey, saveGeminiKey } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 
 export function StepApiKeys() {
-  const [anthropicKey, setAnthropicKey] = useState(() => getAnthropicKey());
-  const [geminiKey, setGeminiKey] = useState(() => getGeminiKey());
+  const storage = useStorage();
+  const [anthropicKey, setAnthropicKey] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
   const [showAnthropic, setShowAnthropic] = useState(false);
   const [showGemini, setShowGemini] = useState(false);
   const [savedModal, setSavedModal] = useState<string | null>(null);
 
-  const handleSaveAnthropic = () => {
-    saveAnthropicKey(anthropicKey);
+  const handleSaveAnthropic = async () => {
+    await storage.saveApiKeys({ anthropicKey });
     setSavedModal('Klucz Anthropic zapisany! AI będzie używać Claude Sonnet do generowania planów.');
   };
 
-  const handleSaveGemini = () => {
-    saveGeminiKey(geminiKey);
+  const handleSaveGemini = async () => {
+    await storage.saveApiKeys({ geminiKey });
     setSavedModal('Klucz Gemini zapisany! AI będzie używać Google Gemini do generowania planów.');
   };
 
@@ -35,11 +36,10 @@ export function StepApiKeys() {
           AI analizuje Twoje dane (siłę, cele, słabe punkty, harmonogram) i generuje plan treningowy dopasowany do Ciebie — dobiera ćwiczenia, objętość, periodyzację i ciężary. Po każdym treningu analizuje też Twoje wyniki i dostosowuje plan.
         </p>
         <p className="text-sm text-muted-foreground">
-          Podaj klucz do jednego z providerów. Jest przechowywany tylko lokalnie w Twojej przeglądarce.
+          Podaj klucz do jednego z providerów. Jest przechowywany bezpiecznie na serwerze.
         </p>
       </div>
 
-      {/* Anthropic (recommended) */}
       <Card className="border-primary/30">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -76,7 +76,6 @@ export function StepApiKeys() {
         </CardContent>
       </Card>
 
-      {/* Gemini (free) */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">

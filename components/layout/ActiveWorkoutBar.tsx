@@ -4,26 +4,28 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Dumbbell, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getActiveWorkout, clearActiveWorkout } from '@/lib/storage';
-import type { ActiveWorkout } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
+import type { ActiveWorkout } from '@/lib/supabase-storage';
 
 export function ActiveWorkoutBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const storage = useStorage();
   const [active, setActive] = useState<ActiveWorkout | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const aw = getActiveWorkout();
-    setActive(aw);
-    if (aw) {
-      setElapsed(Math.floor((Date.now() - new Date(aw.startTime).getTime()) / 1000));
-    }
-  }, [pathname]);
+    if (!storage.isReady) return;
+    storage.getActiveWorkout().then((aw) => {
+      setActive(aw);
+      if (aw) {
+        setElapsed(Math.floor((Date.now() - new Date(aw.startTime).getTime()) / 1000));
+      }
+    });
+  }, [pathname, storage.isReady]);
 
-  // Tick every second when active and visible
   useEffect(() => {
     if (!active || pathname.startsWith('/workout/')) return;
     intervalRef.current = setInterval(() => {
@@ -45,8 +47,8 @@ export function ActiveWorkoutBar() {
     router.push(`/workout/${active.weekNumber}/${active.dayNumber}`);
   };
 
-  const handleEnd = () => {
-    clearActiveWorkout();
+  const handleEnd = async () => {
+    await storage.clearActiveWorkout();
     setActive(null);
     setShowConfirm(false);
   };
@@ -82,7 +84,6 @@ export function ActiveWorkoutBar() {
         </div>
       </div>
 
-      {/* Confirmation modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
           <div className="bg-background rounded-xl shadow-xl p-6 max-w-sm w-full space-y-4">

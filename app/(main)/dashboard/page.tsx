@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dumbbell, CheckCircle2, ArrowRight, ArrowLeft, Calendar } from 'lucide-react';
-import { getUserSettings, getProgram, getWorkoutLogs } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { AppTour } from '@/components/layout/AppTour';
 import { WorkoutHeatmap } from '@/components/layout/WorkoutHeatmap';
 import { getWeekDays } from '@/lib/program-generator';
@@ -29,29 +29,39 @@ function getAutoSlot(logs: WorkoutLog[], totalSlots: number): number {
 }
 
 export default function DashboardPage() {
+  const storage = useStorage();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [slot, setSlot] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSettings(getUserSettings());
-    const p = getProgram();
-    setProgram(p);
-    const allLogs = getWorkoutLogs();
-    setLogs(allLogs);
-    const totalSlots = p ? p.weeks.length * 4 : 56;
-    setSlot(getAutoSlot(allLogs, totalSlots));
-  }, []);
+    if (!storage.isReady) return;
+    async function load() {
+      const [s, p, l] = await Promise.all([
+        storage.getUserSettings(),
+        storage.getProgram(),
+        storage.getWorkoutLogs(),
+      ]);
+      setSettings(s);
+      setProgram(p);
+      setLogs(l);
+      const totalSlots = p ? p.weeks.length * 4 : 56;
+      setSlot(getAutoSlot(l, totalSlots));
+      setLoading(false);
+    }
+    load();
+  }, [storage.isReady]);
 
   const maxSlot = program ? program.weeks.length * 4 - 1 : 55;
   const prev = useCallback(() => setSlot((s) => Math.max(0, s - 1)), []);
   const next = useCallback(() => setSlot((s) => Math.min(maxSlot, s + 1)), [maxSlot]);
 
-  if (!settings || !program) {
+  if (loading || !settings || !program) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
-        Ładowanie...
+        <div className="animate-pulse">Ładowanie...</div>
       </div>
     );
   }
@@ -96,7 +106,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Workout heatmap */}
       <Card className="mb-4">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Aktywność treningowa</CardTitle>
@@ -106,7 +115,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Today's workout */}
       <Card id="tour-workout" className={`mb-4 border ${phaseColors.border}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -120,15 +128,8 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Navigation arrows */}
           <div className="flex items-center justify-between mb-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={prev}
-              disabled={slot === 0}
-              className="size-9"
-            >
+            <Button variant="ghost" size="icon" onClick={prev} disabled={slot === 0} className="size-9">
               <ArrowLeft className="size-4" />
             </Button>
             <div className="text-center">
@@ -137,13 +138,7 @@ export default function DashboardPage() {
               </p>
               <p className="text-xs text-muted-foreground">{todayWorkout.focus}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={next}
-              disabled={slot === maxSlot}
-              className="size-9"
-            >
+            <Button variant="ghost" size="icon" onClick={next} disabled={slot === maxSlot} className="size-9">
               <ArrowRight className="size-4" />
             </Button>
           </div>
@@ -173,7 +168,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Progress */}
       <div id="tour-progress" className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-medium">Postęp cyklu</p>
@@ -184,7 +178,6 @@ export default function DashboardPage() {
         <Progress value={progressPercent} className="h-2" />
       </div>
 
-      {/* Lift progress — hide for hypertrophy goal */}
       {settings.goals.primary !== 'hypertrophy' && <Card id="tour-lifts" className="mb-6">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Progres siłowy</CardTitle>
@@ -214,7 +207,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>}
 
-      {/* Recent workouts */}
       <h2 className="font-semibold mb-3">Ostatnie treningi</h2>
       {recentLogs.length === 0 ? (
         <p className="text-sm text-muted-foreground">Brak zalogowanych treningów</p>

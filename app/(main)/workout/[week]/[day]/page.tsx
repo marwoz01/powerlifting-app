@@ -21,7 +21,7 @@ import {
   Info,
   X,
 } from 'lucide-react';
-import { getProgram, getWorkoutLog, saveWorkoutLog, getAnthropicKey, getApiKey, getGeminiKey, getUserSettings, runAutoregulation, getAccessoryProgress, saveAccessoryProgress, setActiveWorkout, clearActiveWorkout } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { updateAccessoryAfterWorkout, getSuggestedWeight } from '@/lib/accessory-progression';
 import type { AccessoryProgressionState } from '@/lib/types';
 import { getWeekDays } from '@/lib/program-generator';
@@ -45,7 +45,6 @@ function RestTimer({ defaultSeconds, trigger }: { defaultSeconds: number; trigge
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-start when trigger changes (set completed)
   useEffect(() => {
     if (trigger > 0) {
       setTimeLeft(defaultSeconds);
@@ -170,10 +169,8 @@ function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate, onSe
   );
 }
 
-/** Target RPE based on training phase and exercise role */
 function getTargetRPE(phase: Phase, tag: Exercise['tag'], isBackoff?: boolean): string {
   if (isBackoff) {
-    // Backoff sets are always lighter — lower RPE target
     return phase === 'peaking' ? '7-8' : '6-7';
   }
   switch (tag) {
@@ -298,7 +295,6 @@ function ExerciseCard({
             </p>
           )}
 
-          {/* Topset block */}
           {hasBackoff && (
             <p className="text-xs font-semibold text-foreground mb-1 mt-1">
               Topset — {exercise.plannedSets}×{exercise.plannedReps} @ {exercise.plannedWeight}kg
@@ -318,7 +314,6 @@ function ExerciseCard({
             />
           ))}
 
-          {/* Backoff block */}
           {hasBackoff && (
             <>
               <div className="my-3 border-t border-dashed border-border" />
@@ -367,6 +362,7 @@ function ExerciseCard({
 export default function WorkoutPage() {
   const params = useParams();
   const router = useRouter();
+  const storage = useStorage();
   const weekNum = Number(params.week);
   const dayNum = Number(params.day);
 
@@ -381,33 +377,49 @@ export default function WorkoutPage() {
   const [analysis, setAnalysis] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const p = getProgram();
-    if (p) {
-      setProgram(p);
-      const days = getWeekDays(p, weekNum);
-      setWorkout(days[dayNum - 1] ?? null);
-    }
+    if (!storage.isReady) return;
 
-    setAccProgress(getAccessoryProgress());
+    async function load() {
+      const [p, acc, existingLog] = await Promise.all([
+        storage.getProgram(),
+        storage.getAccessoryProgress(),
+        storage.getWorkoutLog(weekNum, dayNum),
+      ]);
 
-    // Mark workout as active
-    setActiveWorkout({ weekNumber: weekNum, dayNumber: dayNum, startTime: new Date().toISOString() });
-
-    // Load existing log if any
-    const existingLog = getWorkoutLog(weekNum, dayNum);
-    if (existingLog) {
-      setNote(existingLog.generalNote ?? '');
-      const setsMap = new Map<string, LoggedSet[]>();
-      for (const set of existingLog.sets) {
-        const existing = setsMap.get(set.exerciseId) ?? [];
-        existing.push(set);
-        setsMap.set(set.exerciseId, existing);
+      if (p) {
+        setProgram(p);
+        const days = getWeekDays(p, weekNum);
+        setWorkout(days[dayNum - 1] ?? null);
       }
-      setLoggedSets(setsMap);
+
+      setAccProgress(acc);
+
+      // Mark workout as active
+      await storage.setActiveWorkout({
+        weekNumber: weekNum,
+        dayNumber: dayNum,
+        startTime: new Date().toISOString(),
+      });
+
+      // Load existing log if any
+      if (existingLog) {
+        setNote(existingLog.generalNote ?? '');
+        const setsMap = new Map<string, LoggedSet[]>();
+        for (const set of existingLog.sets) {
+          const existing = setsMap.get(set.exerciseId) ?? [];
+          existing.push(set);
+          setsMap.set(set.exerciseId, existing);
+        }
+        setLoggedSets(setsMap);
+      }
+
+      setLoading(false);
     }
-  }, [weekNum, dayNum]);
+    load();
+  }, [weekNum, dayNum, storage.isReady]);
 
   // Session timer
   useEffect(() => {
@@ -438,8 +450,9 @@ export default function WorkoutPage() {
     const allSets: LoggedSet[] = [];
     loggedSets.forEach((sets) => allSets.push(...sets));
 
+    const existingLog = await storage.getWorkoutLog(weekNum, dayNum);
     const log: WorkoutLog = {
-      id: getWorkoutLog(weekNum, dayNum)?.id ?? generateId(),
+      id: existingLog?.id ?? generateId(),
       programId: program.id,
       weekNumber: weekNum,
       dayNumber: dayNum,
@@ -452,23 +465,29 @@ export default function WorkoutPage() {
     };
 
     // Save workout and run autoregulation
-    saveWorkoutLog(log);
-    runAutoregulation(weekNum);
+    await storage.saveWorkoutLog(log);
+    await storage.runAutoregulation(weekNum);
 
     // Update accessory progression tracking
     const updatedAccProgress = updateAccessoryAfterWorkout(accProgress, workout.exercises, allSets);
-    saveAccessoryProgress(updatedAccProgress);
+    await storage.saveAccessoryProgress(updatedAccProgress);
 
     // Clear active workout
-    clearActiveWorkout();
+    await storage.clearActiveWorkout();
     setFinished(true);
 
-    // Auto-trigger AI analysis if API key is available
-    const anthropicKey = getAnthropicKey();
-    const apiKey = getApiKey();
-    const geminiKey = getGeminiKey();
-    const settings = getUserSettings();
-    if ((!anthropicKey && !apiKey && !geminiKey) || !settings) return;
+    // Auto-trigger AI analysis (keys are server-side now)
+    const settings = await storage.getUserSettings();
+    if (!settings) return;
+
+    // Check if user has keys
+    let hasKeys = false;
+    try {
+      const res = await fetch('/api/keys');
+      const data = await res.json();
+      hasKeys = data.hasAnthropic || data.hasOpenRouter || data.hasGemini;
+    } catch { /* ignore */ }
+    if (!hasKeys) return;
 
     setAnalyzing(true);
     setAnalysisError('');
@@ -490,9 +509,6 @@ export default function WorkoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          anthropicKey,
-          apiKey,
-          geminiKey,
           systemPrompt: buildAnalysisPrompt(settings, program),
           workoutData,
         }),
@@ -510,10 +526,10 @@ export default function WorkoutPage() {
     }
   };
 
-  if (!program || !workout) {
+  if (loading || !program || !workout) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
-        Ładowanie treningu...
+        <div className="animate-pulse">Ładowanie treningu...</div>
       </div>
     );
   }
@@ -523,7 +539,6 @@ export default function WorkoutPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 pb-32">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-lg font-bold">
@@ -539,7 +554,6 @@ export default function WorkoutPage() {
         </div>
       </div>
 
-      {/* Exercises */}
       {workout.exercises.map((ex) => (
         <ExerciseCard
           key={ex.id}
@@ -555,7 +569,6 @@ export default function WorkoutPage() {
         />
       ))}
 
-      {/* Notes and finish */}
       <div className="mt-4 space-y-3">
         {!finished ? (
           <>

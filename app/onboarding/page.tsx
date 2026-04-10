@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import type { UserSettings } from '@/lib/types';
-import { saveUserSettings, saveProgram, getUserSettings, getAnthropicKey, getApiKey, getGeminiKey } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { generateProgram } from '@/lib/program-generator';
 import { buildProgramGenerationPrompt, parseAIProgram } from '@/lib/ai-prompts';
 import { StepWelcome } from '@/components/onboarding/StepWelcome';
@@ -32,17 +32,20 @@ const defaultSettings: UserSettings = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const storage = useStorage();
   const [step, setStep] = useState(0);
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    const existing = getUserSettings();
-    if (existing) {
-      setSettings({ ...existing, onboardingComplete: false });
-    }
-  }, []);
+    if (!storage.isReady) return;
+    storage.getUserSettings().then((existing) => {
+      if (existing) {
+        setSettings({ ...existing, onboardingComplete: false });
+      }
+    });
+  }, [storage.isReady]);
 
   const update = useCallback((partial: Partial<UserSettings>) => {
     setSettings((prev) => ({ ...prev, ...partial }));
@@ -81,40 +84,34 @@ export default function OnboardingPage() {
 
   const finish = async () => {
     setGenerating(true);
-    setStep(STEPS.length); // go to generating screen
+    setStep(STEPS.length);
 
     const finalSettings: UserSettings = {
       ...settings,
       profile: { ...settings.profile, createdAt: new Date().toISOString() },
       onboardingComplete: true,
     };
-    saveUserSettings(finalSettings);
+    await storage.saveUserSettings(finalSettings);
 
-    // Try AI-powered generation first
-    const anthropicKey = getAnthropicKey();
-    const apiKey = getApiKey();
-    const geminiKey = getGeminiKey();
+    // Try AI-powered generation (keys are now server-side)
     let aiTemplates = null;
-
-    if (anthropicKey || apiKey || geminiKey) {
-      try {
-        const prompt = buildProgramGenerationPrompt(finalSettings);
-        const res = await fetch('/api/generate-program', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ anthropicKey, apiKey, geminiKey, prompt }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          aiTemplates = parseAIProgram(data.content);
-        }
-      } catch {
-        // AI failed — fall back to templates silently
+    try {
+      const prompt = buildProgramGenerationPrompt(finalSettings);
+      const res = await fetch('/api/generate-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        aiTemplates = parseAIProgram(data.content);
       }
+    } catch {
+      // AI failed — fall back to templates silently
     }
 
     const program = generateProgram(finalSettings, aiTemplates ?? undefined);
-    saveProgram(program);
+    await storage.saveProgram(program);
     router.push('/dashboard');
   };
 
@@ -141,7 +138,7 @@ export default function OnboardingPage() {
 
           <div className="space-y-4 pt-4">
             <p className="text-lg font-semibold text-primary">
-              Gotowy na nowe rekordy? 💪
+              Gotowy na nowe rekordy?
             </p>
             <p className="text-sm text-muted-foreground italic">
               &ldquo;Siła nie pochodzi z wygrywania. Twoje zmagania rozwijają siłę. Kiedy przechodzisz przez trudności i decydujesz się nie poddawać — to jest siła.&rdquo;
@@ -154,7 +151,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
       {step > 0 && (
         <div className="px-4 pt-8 pb-4 max-w-lg mx-auto w-full">
           <h1 className="text-2xl font-bold mb-1">Konfiguracja</h1>
@@ -165,7 +161,6 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* Content */}
       <div className="flex-1 px-4 pb-32 max-w-lg mx-auto w-full">
         {step === 0 && <StepWelcome />}
         {step === 1 && <StepApiKeys />}
@@ -177,7 +172,6 @@ export default function OnboardingPage() {
         {step === 7 && <StepSummary settings={settings} />}
       </div>
 
-      {/* Footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
         <div className="max-w-lg mx-auto flex gap-3">
           {step > 0 && (

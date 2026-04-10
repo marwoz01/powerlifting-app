@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle2, ArrowLeftRight, X } from 'lucide-react';
-import { getProgram, getWorkoutLogs, swapExerciseInProgram } from '@/lib/storage';
+import { useStorage } from '@/lib/hooks/use-storage';
 import { getWeekDays } from '@/lib/program-generator';
 import { getAlternatives } from '@/lib/exercise-alternatives';
 import { PHASE_LABELS, PHASE_COLORS, TAG_LABELS, TAG_COLORS } from '@/lib/constants';
@@ -58,29 +58,44 @@ function ExerciseRow({
 }
 
 export default function ProgramPage() {
+  const storageHook = useStorage();
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [swapTarget, setSwapTarget] = useState<Exercise | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const reload = useCallback(() => {
-    setProgram(getProgram());
-    setLogs(getWorkoutLogs());
-  }, []);
+  const reload = useCallback(async () => {
+    const [p, l] = await Promise.all([
+      storageHook.getProgram(),
+      storageHook.getWorkoutLogs(),
+    ]);
+    setProgram(p);
+    setLogs(l);
+  }, [storageHook.isReady]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (!storageHook.isReady) return;
+    reload().then(() => setLoading(false));
+  }, [storageHook.isReady]);
 
   const handleSwap = useCallback(
-    (newName: string, newNote: string) => {
+    async (newName: string, newNote: string) => {
       if (!swapTarget) return;
-      swapExerciseInProgram(swapTarget.name, newName, newNote);
+      await storageHook.swapExerciseInProgram(swapTarget.name, newName, newNote);
       setSwapTarget(null);
-      reload();
+      await reload();
     },
     [swapTarget, reload]
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-muted-foreground">Ładowanie...</div>
+      </div>
+    );
+  }
 
   if (!program) {
     return (
@@ -103,7 +118,6 @@ export default function ProgramPage() {
       <h1 className="text-2xl font-bold mb-1">Program treningowy</h1>
       <p className="text-sm text-muted-foreground mb-6">{program.weeks.length}-tygodniowa periodyzacja blokowa</p>
 
-      {/* Week grid */}
       <div className="flex flex-wrap gap-2 mb-6">
         {program.weeks.map((week) => {
           const colors = PHASE_COLORS[week.phase];
@@ -129,7 +143,6 @@ export default function ProgramPage() {
         })}
       </div>
 
-      {/* Week details */}
       <Card className="mb-4">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -183,7 +196,6 @@ export default function ProgramPage() {
         </CardContent>
       </Card>
 
-      {/* Swap modal */}
       {swapTarget && alternatives && (
         <div
           className="fixed inset-0 z-100 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4"
