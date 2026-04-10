@@ -163,6 +163,9 @@ function buildDayFromTemplate(
     ? template.exercises.filter((tmpl) => tmpl.weightType === 'topset')
     : template.exercises;
 
+  // Scale accessory sets by phase — reduce in peaking/deload
+  const accessorySetScale = (phase === 'peaking' || phase === 'deload') ? -1 : 0;
+
   const exercises: Exercise[] = filteredTemplates.map((tmpl) => {
     // For main lifts, cap sets at reasonable values instead of using raw weekSets
     const mainTopsetSets = Math.min(weekSets, 3); // max 3 topsets
@@ -196,14 +199,24 @@ function buildDayFromTemplate(
           }
           break;
         case 'volume':
-          ex.plannedSets = tmpl.fixedSets ?? volumeSets;
-          ex.plannedReps = (tmpl.fixedReps ?? weekReps) + 1;
+          // Volume always follows periodization — ignore fixedSets/fixedReps
+          ex.plannedSets = volumeSets;
+          ex.plannedReps = weekReps + 1;
           ex.plannedWeight = getVolumeWeight(oneRM, percentage);
           break;
         case 'technical':
           ex.plannedWeight = getTechnicalWeight(oneRM);
+          // Technical sets follow periodization in peaking (fewer sets)
+          if (phase === 'peaking' || phase === 'deload') {
+            ex.plannedSets = Math.max(2, (tmpl.fixedSets ?? 3) - 1);
+          }
           break;
       }
+    }
+
+    // Accessories: reduce sets in peaking/deload phases
+    if (!tmpl.liftType && (tmpl.tag === 'accessory' || tmpl.tag === 'supplemental')) {
+      ex.plannedSets = Math.max(2, (tmpl.fixedSets ?? 3) + accessorySetScale);
     }
 
     return ex;
