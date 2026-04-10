@@ -1,4 +1,4 @@
-import type { UserSettings, GeneratedProgram, WorkoutDay, Exercise, OneRepMaxes } from './types';
+import type { UserSettings, GeneratedProgram, WorkoutDay, Exercise, OneRepMaxes, Phase } from './types';
 import { getWeekSchemeForLevel } from './constants';
 import { getTrainingLevel } from './calculations';
 import {
@@ -153,9 +153,17 @@ function buildDayFromTemplate(
   weekSets: number,
   weekReps: number,
   percentage: number,
-  maxes: OneRepMaxes
+  maxes: OneRepMaxes,
+  phase: Phase
 ): WorkoutDay {
-  const exercises: Exercise[] = template.exercises.map((tmpl) => {
+  // Test week: only main lift (topset without backoff), skip everything else
+  const isTest = phase === 'test';
+
+  const filteredTemplates = isTest
+    ? template.exercises.filter((tmpl) => tmpl.weightType === 'topset')
+    : template.exercises;
+
+  const exercises: Exercise[] = filteredTemplates.map((tmpl) => {
     // For main lifts, cap sets at reasonable values instead of using raw weekSets
     const mainTopsetSets = Math.min(weekSets, 3); // max 3 topsets
     const mainBackoffSets = Math.min(weekSets, 3); // max 3 backoff sets
@@ -169,7 +177,7 @@ function buildDayFromTemplate(
       plannedReps: tmpl.fixedReps ?? weekReps,
       liftType: tmpl.liftType,
       weightType: tmpl.weightType,
-      note: tmpl.note,
+      note: isTest ? 'Rozgrzej się stopniowo i podejdź do maksymalnej pojedynczej próby.' : tmpl.note,
     };
 
     // Calculate weight based on weightType
@@ -179,7 +187,8 @@ function buildDayFromTemplate(
         case 'topset':
           ex.plannedSets = tmpl.fixedSets ?? mainTopsetSets;
           ex.plannedWeight = getTopsetWeight(oneRM, percentage);
-          if (tmpl.hasBackoff) {
+          // No backoff on test week
+          if (tmpl.hasBackoff && !isTest) {
             ex.isBackoff = true;
             ex.backoffSets = tmpl.fixedSets ?? mainBackoffSets;
             ex.backoffReps = (tmpl.fixedReps ?? weekReps) + 2;
@@ -200,11 +209,16 @@ function buildDayFromTemplate(
     return ex;
   });
 
+  // Test week: update day focus
+  const focus = isTest
+    ? exercises.map((e) => e.name).join(' + ') + ' — Test 1RM'
+    : template.focus;
+
   return {
     dayNumber: template.dayNumber,
     label: template.label,
     dayOfWeek: template.dayOfWeek,
-    focus: template.focus,
+    focus,
     exercises,
   };
 }
@@ -222,16 +236,32 @@ export function generateProgram(
 
   const allDays: WorkoutDay[] = [];
   for (const week of weeks) {
+    const weekDays: WorkoutDay[] = [];
     for (const template of templates) {
       const day = buildDayFromTemplate(
         template,
         week.sets,
         week.reps,
         week.percentage,
-        oneRepMaxes
+        oneRepMaxes,
+        week.phase
       );
-      allDays.push(day);
+      // Skip empty days (e.g. day 4 in test week has no topset exercises)
+      if (day.exercises.length > 0) {
+        weekDays.push(day);
+      }
     }
+    // Pad to 4 days per week for consistent indexing
+    while (weekDays.length < 4) {
+      weekDays.push({
+        dayNumber: (weekDays.length + 1) as 1 | 2 | 3 | 4,
+        label: `Dzień ${weekDays.length + 1}`,
+        dayOfWeek: '',
+        focus: 'Dzień wolny — regeneracja',
+        exercises: [],
+      });
+    }
+    allDays.push(...weekDays);
   }
 
   return {
