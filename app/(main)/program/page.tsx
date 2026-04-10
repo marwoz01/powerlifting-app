@@ -1,26 +1,46 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2 } from 'lucide-react';
-import { getProgram, getWorkoutLogs } from '@/lib/storage';
+import { CheckCircle2, ArrowLeftRight, X } from 'lucide-react';
+import { getProgram, getWorkoutLogs, swapExerciseInProgram } from '@/lib/storage';
 import { getWeekDays } from '@/lib/program-generator';
+import { getAlternatives } from '@/lib/exercise-alternatives';
 import { PHASE_LABELS, PHASE_COLORS, TAG_LABELS, TAG_COLORS } from '@/lib/constants';
-import type { GeneratedProgram, WorkoutLog, Exercise, Phase } from '@/lib/types';
+import type { GeneratedProgram, WorkoutLog, Exercise } from '@/lib/types';
 
-function ExerciseRow({ exercise }: { exercise: Exercise }) {
+function ExerciseRow({
+  exercise,
+  onSwapRequest,
+}: {
+  exercise: Exercise;
+  onSwapRequest: (exercise: Exercise) => void;
+}) {
+  const hasAlternatives = !!getAlternatives(exercise.name);
+
   return (
     <div className="py-2.5 border-b border-border last:border-0">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Badge className={`text-[10px] px-1.5 py-0 ${TAG_COLORS[exercise.tag]}`}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Badge className={`text-[10px] px-1.5 py-0 shrink-0 ${TAG_COLORS[exercise.tag]}`}>
             {TAG_LABELS[exercise.tag]}
           </Badge>
-          <span className="text-sm font-medium">{exercise.name}</span>
+          <span className="text-sm font-medium truncate">{exercise.name}</span>
+          {hasAlternatives && (
+            <button
+              type="button"
+              onClick={() => onSwapRequest(exercise)}
+              className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+              title="Zamień ćwiczenie"
+            >
+              <ArrowLeftRight className="size-3.5" />
+            </button>
+          )}
         </div>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-muted-foreground shrink-0 ml-2">
           {exercise.plannedSets}×{exercise.plannedReps}
           {exercise.plannedWeight ? ` @ ${exercise.plannedWeight} kg` : ''}
         </span>
@@ -41,11 +61,26 @@ export default function ProgramPage() {
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(1);
+  const [swapTarget, setSwapTarget] = useState<Exercise | null>(null);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     setProgram(getProgram());
     setLogs(getWorkoutLogs());
   }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const handleSwap = useCallback(
+    (newName: string, newNote: string) => {
+      if (!swapTarget) return;
+      swapExerciseInProgram(swapTarget.name, newName, newNote);
+      setSwapTarget(null);
+      reload();
+    },
+    [swapTarget, reload]
+  );
 
   if (!program) {
     return (
@@ -60,6 +95,8 @@ export default function ProgramPage() {
 
   const isLogged = (week: number, day: number) =>
     logs.some((l) => l.weekNumber === week && l.dayNumber === day && l.completed);
+
+  const alternatives = swapTarget ? getAlternatives(swapTarget.name) : null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -132,14 +169,68 @@ export default function ProgramPage() {
                 </div>
                 <div>
                   {day.exercises.map((ex) => (
-                    <ExerciseRow key={ex.id} exercise={ex} />
+                    <ExerciseRow key={ex.id} exercise={ex} onSwapRequest={setSwapTarget} />
                   ))}
+                  {day.exercises.length === 0 && (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      Dzień wolny — regeneracja
+                    </p>
+                  )}
                 </div>
               </TabsContent>
             ))}
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Swap modal */}
+      {swapTarget && alternatives && (
+        <div
+          className="fixed inset-0 z-100 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4"
+          onClick={() => setSwapTarget(null)}
+        >
+          <div
+            className="bg-background rounded-xl shadow-xl p-5 max-w-md w-full max-h-[80vh] overflow-y-auto space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">Zamień ćwiczenie</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {swapTarget.name} → {alternatives.pattern}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSwapTarget(null)}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {alternatives.exercises.map((alt) => (
+                <button
+                  key={alt.name}
+                  type="button"
+                  onClick={() => handleSwap(alt.name, alt.note)}
+                  className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                >
+                  <p className="text-sm font-medium">{alt.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{alt.note}</p>
+                </button>
+              ))}
+            </div>
+
+            {alternatives.exercises.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Brak alternatyw dla tego ćwiczenia
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

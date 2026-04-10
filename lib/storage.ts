@@ -54,6 +54,26 @@ export function saveProgram(program: GeneratedProgram): void {
   safeSet(KEYS.program, program);
 }
 
+/** Swap an exercise by name across all weeks in the program */
+export function swapExerciseInProgram(
+  oldName: string,
+  newName: string,
+  newNote?: string
+): void {
+  const program = getProgram();
+  if (!program) return;
+
+  for (const day of program.days) {
+    for (const ex of day.exercises) {
+      if (ex.name === oldName) {
+        ex.name = newName;
+        if (newNote) ex.note = newNote;
+      }
+    }
+  }
+  saveProgram(program);
+}
+
 // --- Workout Logs ---
 
 export function getWorkoutLogs(): WorkoutLog[] {
