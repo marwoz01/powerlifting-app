@@ -100,7 +100,7 @@ export default function ProgramPage() {
               Tydzień {selectedWeek} — {PHASE_LABELS[currentWeekInfo.phase]}
             </CardTitle>
             <Badge className={`${PHASE_COLORS[currentWeekInfo.phase].bg} ${PHASE_COLORS[currentWeekInfo.phase].text}`}>
-              {currentWeekInfo.sets}×{currentWeekInfo.reps} @ {Math.round(currentWeekInfo.percentage * 100)}%
+              Intensywność: {Math.round(currentWeekInfo.percentage * 100)}%
             </Badge>
           </div>
         </CardHeader>

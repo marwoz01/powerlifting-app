@@ -153,9 +153,9 @@ export function WorkoutHeatmap({ logs, plannedDays = [] }: Props) {
                     className={cn(
                       'size-3 rounded-sm transition-colors',
                       isFuture && isPlanned && 'bg-muted-foreground/10',
-                      isFuture && !isPlanned && 'bg-muted/20',
-                      !isFuture && !isTrained && isPlanned && 'bg-muted-foreground/15',
-                      !isFuture && !isTrained && !isPlanned && 'bg-muted/30',
+                      isFuture && !isPlanned && 'bg-muted-foreground/10',
+                      !isFuture && !isTrained && isPlanned && 'bg-muted-foreground/20',
+                      !isFuture && !isTrained && !isPlanned && 'bg-muted-foreground/10',
                       isTrained && 'bg-foreground',
                       isToday && 'ring-1 ring-foreground',
                     )}
