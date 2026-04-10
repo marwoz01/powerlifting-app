@@ -157,17 +157,10 @@ function buildDayFromTemplate(
   maxes: OneRepMaxes,
   phase: Phase
 ): WorkoutDay {
-  // Test week: only main lift (topset without backoff), skip everything else
-  const isTest = phase === 'test';
-
-  const filteredTemplates = isTest
-    ? template.exercises.filter((tmpl) => tmpl.weightType === 'topset')
-    : template.exercises;
-
   // Scale accessory sets by phase — reduce in peaking/deload
   const accessorySetScale = (phase === 'peaking' || phase === 'deload') ? -1 : 0;
 
-  const exercises: Exercise[] = filteredTemplates.map((tmpl) => {
+  const exercises: Exercise[] = template.exercises.map((tmpl) => {
     // For main lifts, cap sets at reasonable values instead of using raw weekSets
     const mainTopsetSets = Math.min(weekSets, 3); // max 3 topsets
     const mainBackoffSets = Math.min(weekSets, 3); // max 3 backoff sets
@@ -181,7 +174,7 @@ function buildDayFromTemplate(
       plannedReps: tmpl.fixedReps ?? weekReps,
       liftType: tmpl.liftType,
       weightType: tmpl.weightType,
-      note: isTest ? 'Rozgrzej się stopniowo i podejdź do maksymalnej pojedynczej próby.' : tmpl.note,
+      note: tmpl.note,
     };
 
     // Calculate weight based on weightType
@@ -228,17 +221,79 @@ function buildDayFromTemplate(
     return ex;
   });
 
-  // Test week: update day focus
-  const focus = isTest
-    ? exercises.map((e) => e.name).join(' + ') + ' — Test 1RM'
-    : template.focus;
-
   return {
     dayNumber: template.dayNumber,
     label: template.label,
     dayOfWeek: template.dayOfWeek,
-    focus,
+    focus: template.focus,
     exercises,
+  };
+}
+
+/** Build warm-up + max attempt exercises for a single lift on test day */
+function buildTestLiftExercises(
+  liftName: string,
+  liftType: 'squat' | 'bench' | 'deadlift',
+  oneRM: number
+): Exercise[] {
+  // Warm-up progression: 50%×5, 60%×3, 70%×2, 80%×1, 87%×1, 93%×1, 100%×1
+  const warmupScheme = [
+    { pct: 0.50, reps: 5, label: 'Rozgrzewka' },
+    { pct: 0.60, reps: 3, label: 'Rozgrzewka' },
+    { pct: 0.70, reps: 2, label: 'Rozgrzewka' },
+    { pct: 0.80, reps: 1, label: 'Podejście' },
+    { pct: 0.87, reps: 1, label: 'Podejście' },
+    { pct: 0.93, reps: 1, label: 'Podejście' },
+  ];
+
+  const exercises: Exercise[] = [];
+
+  // Warm-up sets as a single exercise with note listing the progression
+  const warmupLines = warmupScheme
+    .map((w) => `${roundTo2_5(oneRM * w.pct)} kg × ${w.reps} (${Math.round(w.pct * 100)}%)`)
+    .join('  →  ');
+
+  exercises.push({
+    id: generateId(),
+    name: `${liftName} — rozgrzewka`,
+    tag: 'technical',
+    plannedSets: warmupScheme.length,
+    plannedReps: 1,
+    plannedWeight: roundTo2_5(oneRM * 0.50),
+    liftType,
+    note: warmupLines,
+  });
+
+  // Max attempt
+  exercises.push({
+    id: generateId(),
+    name: `${liftName} — MAKS`,
+    tag: 'main',
+    plannedSets: 1,
+    plannedReps: 1,
+    plannedWeight: roundTo2_5(oneRM),
+    liftType,
+    weightType: 'topset',
+    note: 'Podejście do nowego rekordu życiowego. Jeśli poszło lekko, możesz podbić o 2.5 kg.',
+  });
+
+  return exercises;
+}
+
+/** Build the single test day with all 3 lifts */
+function buildTestDay(maxes: OneRepMaxes, dayOfWeek: string, dlVariant: string): WorkoutDay {
+  const dlName = dlVariant === 'sumo' ? 'Martwy ciąg Sumo' : 'Martwy ciąg Conventional';
+
+  return {
+    dayNumber: 1,
+    label: 'Dzień 1',
+    dayOfWeek,
+    focus: 'Test 1RM — Przysiad, Ławka, Martwy ciąg',
+    exercises: [
+      ...buildTestLiftExercises('Przysiad (Back Squat)', 'squat', maxes.squat),
+      ...buildTestLiftExercises('Wyciskanie leżąc (Bench Press)', 'bench', maxes.bench),
+      ...buildTestLiftExercises(dlName, 'deadlift', maxes.deadlift),
+    ],
   };
 }
 
@@ -253,8 +308,31 @@ export function generateProgram(
   const templates = dayTemplates ?? getDefaultTemplates(settings);
   const weeks = getWeekSchemeForLevel(level).map((w) => ({ ...w }));
 
+  const dlVariant = settings.deadliftVariant ?? 'sumo';
+  const preferredDays = settings.schedule.preferredDays;
+  const dayMap: Record<string, string> = {
+    monday: 'Pon', tuesday: 'Wt', wednesday: 'Śr',
+    thursday: 'Czw', friday: 'Pt', saturday: 'Sob', sunday: 'Ndz',
+  };
+  const firstDayLabel = dayMap[preferredDays[0]] ?? 'Pon';
+
   const allDays: WorkoutDay[] = [];
   for (const week of weeks) {
+    // Test week: single day with all 3 lifts + warm-ups
+    if (week.phase === 'test') {
+      const effectiveMaxes = oneRepMaxes; // will be recalculated by autoregulation during cycle
+      const testDay = buildTestDay(effectiveMaxes, firstDayLabel, dlVariant);
+      const restDay = (n: number): WorkoutDay => ({
+        dayNumber: n as 1 | 2 | 3 | 4,
+        label: `Dzień ${n}`,
+        dayOfWeek: '',
+        focus: 'Dzień wolny — regeneracja',
+        exercises: [],
+      });
+      allDays.push(testDay, restDay(2), restDay(3), restDay(4));
+      continue;
+    }
+
     const weekDays: WorkoutDay[] = [];
     for (const template of templates) {
       const day = buildDayFromTemplate(
@@ -265,10 +343,7 @@ export function generateProgram(
         oneRepMaxes,
         week.phase
       );
-      // Skip empty days (e.g. day 4 in test week has no topset exercises)
-      if (day.exercises.length > 0) {
-        weekDays.push(day);
-      }
+      weekDays.push(day);
     }
     // Pad to 4 days per week for consistent indexing
     while (weekDays.length < 4) {
