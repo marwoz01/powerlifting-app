@@ -2,11 +2,11 @@ import { type Phase, type ProgramWeek, type TrainingLevel } from './types';
 
 /** Beginner: 16 weeks — more hypertrophy volume, higher reps, lower percentages */
 export const BEGINNER_WEEK_SCHEME: ProgramWeek[] = [
-  { weekNumber: 1,  phase: 'hypertrophy', sets: 5, reps: 8, percentage: 0.65, isDeload: false },
-  { weekNumber: 2,  phase: 'hypertrophy', sets: 5, reps: 8, percentage: 0.67, isDeload: false },
-  { weekNumber: 3,  phase: 'hypertrophy', sets: 5, reps: 6, percentage: 0.70, isDeload: false },
-  { weekNumber: 4,  phase: 'hypertrophy', sets: 5, reps: 6, percentage: 0.72, isDeload: false },
-  { weekNumber: 5,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.74, isDeload: false },
+  { weekNumber: 1,  phase: 'hypertrophy', sets: 4, reps: 8, percentage: 0.65, isDeload: false },
+  { weekNumber: 2,  phase: 'hypertrophy', sets: 4, reps: 8, percentage: 0.67, isDeload: false },
+  { weekNumber: 3,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.70, isDeload: false },
+  { weekNumber: 4,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.72, isDeload: false },
+  { weekNumber: 5,  phase: 'hypertrophy', sets: 3, reps: 6, percentage: 0.74, isDeload: false },
   { weekNumber: 6,  phase: 'deload',      sets: 3, reps: 5, percentage: 0.60, isDeload: true, isScheduledDeload: true },
   { weekNumber: 7,  phase: 'strength',    sets: 4, reps: 5, percentage: 0.76, isDeload: false },
   { weekNumber: 8,  phase: 'strength',    sets: 4, reps: 5, percentage: 0.78, isDeload: false },
@@ -24,8 +24,8 @@ export const BEGINNER_WEEK_SCHEME: ProgramWeek[] = [
 export const WEEK_SCHEME: ProgramWeek[] = [
   { weekNumber: 1,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.72, isDeload: false },
   { weekNumber: 2,  phase: 'hypertrophy', sets: 4, reps: 6, percentage: 0.75, isDeload: false },
-  { weekNumber: 3,  phase: 'hypertrophy', sets: 5, reps: 5, percentage: 0.77, isDeload: false },
-  { weekNumber: 4,  phase: 'hypertrophy', sets: 5, reps: 5, percentage: 0.79, isDeload: false },
+  { weekNumber: 3,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.77, isDeload: false },
+  { weekNumber: 4,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.79, isDeload: false },
   { weekNumber: 5,  phase: 'deload',      sets: 3, reps: 4, percentage: 0.65, isDeload: true, isScheduledDeload: true },
   { weekNumber: 6,  phase: 'strength',    sets: 4, reps: 4, percentage: 0.80, isDeload: false },
   { weekNumber: 7,  phase: 'strength',    sets: 4, reps: 4, percentage: 0.83, isDeload: false },
@@ -42,7 +42,7 @@ export const WEEK_SCHEME: ProgramWeek[] = [
 export const ADVANCED_WEEK_SCHEME: ProgramWeek[] = [
   { weekNumber: 1,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.75, isDeload: false },
   { weekNumber: 2,  phase: 'hypertrophy', sets: 4, reps: 5, percentage: 0.77, isDeload: false },
-  { weekNumber: 3,  phase: 'hypertrophy', sets: 5, reps: 4, percentage: 0.79, isDeload: false },
+  { weekNumber: 3,  phase: 'hypertrophy', sets: 4, reps: 4, percentage: 0.79, isDeload: false },
   { weekNumber: 4,  phase: 'deload',      sets: 3, reps: 4, percentage: 0.65, isDeload: true, isScheduledDeload: true },
   { weekNumber: 5,  phase: 'strength',    sets: 4, reps: 3, percentage: 0.82, isDeload: false },
   { weekNumber: 6,  phase: 'strength',    sets: 4, reps: 3, percentage: 0.85, isDeload: false },

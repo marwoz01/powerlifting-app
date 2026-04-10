@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dumbbell, CheckCircle2, ArrowRight, ArrowLeft, Calendar } from 'lucide-react';
 import { getUserSettings, getProgram, getWorkoutLogs } from '@/lib/storage';
 import { AppTour } from '@/components/layout/AppTour';
+import { WorkoutHeatmap } from '@/components/layout/WorkoutHeatmap';
 import { getWeekDays } from '@/lib/program-generator';
 import { PHASE_LABELS, PHASE_COLORS } from '@/lib/constants';
 import { getTrainingLevel, estimatedProgress } from '@/lib/calculations';
@@ -94,6 +95,16 @@ export default function DashboardPage() {
           Tydzień {currentWeek}/{program.weeks.length} — {PHASE_LABELS[currentWeekInfo.phase]}
         </p>
       </div>
+
+      {/* Workout heatmap */}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Aktywność treningowa</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WorkoutHeatmap logs={logs} plannedDays={settings.schedule.preferredDays} />
+        </CardContent>
+      </Card>
 
       {/* Today's workout */}
       <Card id="tour-workout" className={`mb-4 border ${phaseColors.border}`}>

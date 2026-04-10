@@ -40,10 +40,18 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
+function RestTimer({ defaultSeconds, trigger }: { defaultSeconds: number; trigger: number }) {
   const [timeLeft, setTimeLeft] = useState(defaultSeconds);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-start when trigger changes (set completed)
+  useEffect(() => {
+    if (trigger > 0) {
+      setTimeLeft(defaultSeconds);
+      setRunning(true);
+    }
+  }, [trigger, defaultSeconds]);
 
   useEffect(() => {
     if (running && timeLeft > 0) {
@@ -77,7 +85,7 @@ function RestTimer({ defaultSeconds }: { defaultSeconds: number }) {
   };
 
   return (
-    <div className="flex items-center gap-2 mt-2">
+    <div className="flex items-center gap-2 mb-3">
       <button
         onClick={toggle}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
@@ -104,9 +112,10 @@ interface SetInputProps {
   plannedReps: number;
   logged: LoggedSet | undefined;
   onUpdate: (set: LoggedSet) => void;
+  onSetDone?: () => void;
 }
 
-function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate }: SetInputProps) {
+function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate, onSetDone }: SetInputProps) {
   const [actualWeight, setActualWeight] = useState(logged?.actualWeight ?? plannedWeight);
   const [actualReps, setActualReps] = useState(logged?.actualReps ?? plannedReps);
   const [rpe, setRpe] = useState(logged?.rpe ?? 0);
@@ -124,18 +133,18 @@ function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate }: Se
         actualReps,
         rpe: rpe > 0 ? rpe : undefined,
       });
+      onSetDone?.();
     }
   };
 
   return (
-    <div className={`flex items-center gap-2 py-1.5 ${done ? 'opacity-60' : ''}`}>
-      <Checkbox checked={done} onCheckedChange={(c) => handleDone(c === true)} className="size-5" />
-      <span className="text-xs text-muted-foreground w-6">S{setIndex + 1}</span>
+    <div className={`grid grid-cols-[2rem_1fr_auto_1fr_1fr_1.5rem] items-center gap-1.5 py-1.5 ${done ? 'opacity-60' : ''}`}>
+      <span className="text-xs text-muted-foreground text-center">{setIndex + 1}</span>
       <Input
         type="number"
         value={actualWeight || ''}
         onChange={(e) => setActualWeight(Number(e.target.value))}
-        className="h-9 w-20 text-center"
+        className="h-9 text-center"
         placeholder="kg"
       />
       <span className="text-xs text-muted-foreground">×</span>
@@ -143,18 +152,19 @@ function SetInput({ setIndex, plannedWeight, plannedReps, logged, onUpdate }: Se
         type="number"
         value={actualReps || ''}
         onChange={(e) => setActualReps(Number(e.target.value))}
-        className="h-9 w-16 text-center"
+        className="h-9 text-center"
         placeholder="reps"
       />
       <Input
         type="number"
         value={rpe || ''}
         onChange={(e) => setRpe(Number(e.target.value))}
-        className="h-9 w-16 text-center"
+        className="h-9 text-center"
         placeholder="RPE"
         min={1}
         max={10}
       />
+      <Checkbox checked={done} onCheckedChange={(c) => handleDone(c === true)} className="size-5" />
     </div>
   );
 }
@@ -172,6 +182,7 @@ function ExerciseCard({
 }) {
   const [expanded, setExpanded] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
+  const [restTrigger, setRestTrigger] = useState(0);
 
   const exerciseNote = exercise.note || getExerciseNote(exercise.name);
   const effectiveWeight = exercise.plannedWeight ?? suggestedWeight ?? 0;
@@ -198,13 +209,13 @@ function ExerciseCard({
   const restTime = exercise.tag === 'main' || exercise.tag === 'technical' ? 210 : 150;
 
   const setsHeader = (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 px-1">
-      <span className="w-5" />
-      <span className="w-6" />
-      <span className="w-20 text-center">Ciężar</span>
-      <span className="w-4" />
-      <span className="w-16 text-center">Powt.</span>
-      <span className="w-16 text-center">RPE</span>
+    <div className="grid grid-cols-[2rem_1fr_auto_1fr_1fr_1.5rem] items-center gap-1.5 text-xs text-muted-foreground mb-1">
+      <span className="text-center">Set</span>
+      <span className="text-center">Ciężar</span>
+      <span />
+      <span className="text-center">Powt.</span>
+      <span className="text-center">RPE</span>
+      <span className="flex justify-center"><CheckCircle2 className="size-3" /></span>
     </div>
   );
 
@@ -240,8 +251,10 @@ function ExerciseCard({
 
       {expanded && (
         <CardContent className="pt-0">
+          <RestTimer defaultSeconds={restTime} trigger={restTrigger} />
+
           {!exercise.plannedWeight && suggestedWeight && suggestedWeight > 0 && (
-            <p className="text-xs text-emerald-600 font-medium mb-2">
+            <p className="text-xs text-emerald-600 font-medium mb-2 mt-2">
               Sugerowane: {suggestedWeight} kg
             </p>
           )}
@@ -261,6 +274,7 @@ function ExerciseCard({
               plannedReps={s.reps}
               logged={loggedSets.find((ls) => ls.setNumber === i + 1)}
               onUpdate={(set) => onUpdateSet(exercise.id, { ...set, exerciseId: exercise.id, setNumber: i + 1 })}
+              onSetDone={() => setRestTrigger((t) => t + 1)}
             />
           ))}
 
@@ -282,13 +296,12 @@ function ExerciseCard({
                     plannedReps={s.reps}
                     logged={loggedSets.find((ls) => ls.setNumber === globalIndex + 1)}
                     onUpdate={(set) => onUpdateSet(exercise.id, { ...set, exerciseId: exercise.id, setNumber: globalIndex + 1 })}
+                    onSetDone={() => setRestTrigger((t) => t + 1)}
                   />
                 );
               })}
             </>
           )}
-
-          <RestTimer defaultSeconds={restTime} />
         </CardContent>
       )}
     </Card>

@@ -17,9 +17,9 @@ export const getTopsetWeight = (oneRepMax: number, percentage: number): number =
 export const getBackoffWeight = (topsetWeight: number): number =>
   roundTo2_5(topsetWeight * 0.875);
 
-/** Get volume day weight (percentage - 10%, min 65%) */
+/** Get volume day weight (percentage - 10%, min 60%) */
 export const getVolumeWeight = (oneRepMax: number, percentage: number): number =>
-  roundTo2_5(oneRepMax * Math.max(percentage - 0.10, 0.65));
+  roundTo2_5(oneRepMax * Math.max(percentage - 0.10, 0.60));
 
 /** Get technical work weight (constant 65% 1RM) */
 export const getTechnicalWeight = (oneRepMax: number): number =>

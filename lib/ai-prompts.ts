@@ -178,7 +178,7 @@ ZASADY:
 5. Tygodniowy wolumen na grupę: plecy 10-20 serii, nogi (poza bojami) 6-12, ramiona 6-10, core 4-6
 6. Nazwy ćwiczeń po polsku (z angielską nazwą w nawiasie)
 7. Zakresy powtórzeń akcesorii: 3×5-8 (siłowe), 3×8-12 (hipertrofia), 3×12-20 (izolacja/prewencja)
-8. Każde ćwiczenie MUSI mieć pole "note" — krótka wskazówka wykonania (1-2 zdania po polsku): tempo, zakres ruchu, pauzy, na co zwrócić uwagę, typowe błędy. Dopasuj do fazy treningowej i słabych punktów zawodnika.
+8. Każde ćwiczenie MUSI mieć pole "note" — wskazówka wykonania w 1-2 PEŁNYCH zdaniach po polsku. Wymagania: pełne zdania (nie skróty), wyłącznie polski język (nie mieszaj z angielskim), konkretne wskazówki dotyczące tempa, zakresu ruchu, pauz, pozycji ciała. Przykład dobry: "Zatrzymaj sztangę na 2 sekundy na klatce piersiowej. Nie odbijaj — buduje siłę wyciskania z martwego punktu." Przykład zły: "Pauza 1s na klatce, eksplozywny push".
 
 Dla ćwiczeń z automatyczną wagą ustaw liftType i weightType:
 - liftType: "squat", "bench" lub "deadlift"
@@ -193,9 +193,9 @@ Odpowiedz TYLKO prawidłowym JSON-em, bez markdown, bez komentarzy. Format:
     "dayOfWeek": "${dayLabels[0]}",
     "focus": "opis skupienia dnia",
     "exercises": [
-      { "name": "Przysiad (Back Squat)", "tag": "main", "liftType": "squat", "weightType": "topset", "hasBackoff": true, "note": "Pełna głębokość, kolana w linii palców. Kontrolowany excentric 2-3s." },
-      { "name": "Pause Squat", "tag": "technical", "liftType": "squat", "weightType": "technical", "fixedSets": 3, "fixedReps": 3, "note": "Pauza 2s w dole — bez odbicia. Utrzymaj napięcie core i pozycję klatki." },
-      { "name": "Akcesorium", "tag": "accessory", "fixedSets": 3, "fixedReps": 12, "note": "Kontrolowane tempo 2-0-2. Pełen zakres ruchu." }
+      { "name": "Przysiad (Back Squat)", "tag": "main", "liftType": "squat", "weightType": "topset", "hasBackoff": true, "note": "Schodź do pełnej głębokości z klatką piersiową wysoko. Opuszczaj sztangę kontrolowanym ruchem przez 2-3 sekundy." },
+      { "name": "Pause Squat", "tag": "technical", "liftType": "squat", "weightType": "technical", "fixedSets": 3, "fixedReps": 3, "note": "Zatrzymaj się na 2 sekundy w najniższym punkcie bez odbijania się. Utrzymaj napięcie brzucha i pozycję klatki piersiowej przez całą pauzę." },
+      { "name": "Akcesorium", "tag": "accessory", "fixedSets": 3, "fixedReps": 12, "note": "Wykonuj w kontrolowanym tempie z pełnym zakresem ruchu. Na dole poczuj rozciągnięcie mięśnia." }
     ]
   }
 ]`;

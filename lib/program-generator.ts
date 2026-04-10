@@ -71,10 +71,10 @@ function getDefaultTemplates(settings: UserSettings): DayTemplate[] {
       focus: 'Przysiad ciężki + Ława wolumen',
       exercises: [
         { name: 'Przysiad (Back Squat)', tag: 'main', liftType: 'squat', weightType: 'topset', hasBackoff: true },
-        { name: isHypertrophy ? 'Front Squat' : 'Pause Squat', tag: 'technical', liftType: 'squat', weightType: 'technical', fixedSets: 3, fixedReps: isHypertrophy ? 8 : 3, note: isHypertrophy ? 'Kontrolowany ekscentryk' : 'Pauza 2s w dole' },
+        { name: isHypertrophy ? 'Front Squat' : 'Pause Squat', tag: 'technical', liftType: 'squat', weightType: 'technical', fixedSets: 3, fixedReps: isHypertrophy ? 8 : 3, note: isHypertrophy ? 'Trzymaj łokcie wysoko i tułów pionowo. Opuszczaj się kontrolowanym ruchem.' : 'Zatrzymaj się na 2 sekundy w dole bez odbijania. Utrzymaj napięcie brzucha przez całą pauzę.' },
         { name: 'Wyciskanie leżąc (Bench Press)', tag: 'volume', liftType: 'bench', weightType: 'volume' },
-        { name: 'Podciąganie z obciążeniem', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 8 : 5, note: 'Dodaj obciążenie' },
-        { name: 'Face Pull', tag: 'accessory', fixedSets: 3, fixedReps: 15 },
+        { name: 'Podciąganie z obciążeniem', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 8 : 5, note: 'Dodawaj obciążenie na pasie. Zacznij od pełnego wyprostu ramion, ciągnij aż broda znajdzie się nad drążkiem.' },
+        { name: 'Face Pull', tag: 'accessory', fixedSets: 3, fixedReps: 15, note: 'Ciągnij linkę do wysokości twarzy, łokcie prowadź wysoko. Na końcu dodaj rotację zewnętrzną ramion.' },
         ...(shortSession ? [] : [
           { name: isHypertrophy ? 'Overhead Tricep Extension' : 'Tricep Pushdown', tag: 'accessory' as const, fixedSets: 3, fixedReps: isHypertrophy ? 12 : 15 },
         ]),
@@ -91,15 +91,15 @@ function getDefaultTemplates(settings: UserSettings): DayTemplate[] {
       focus: 'Martwy ciężki + Ława techniczny',
       exercises: [
         { name: `Martwy ciąg ${dlName}`, tag: 'main', liftType: 'deadlift', weightType: 'topset', hasBackoff: true },
-        { name: isHypertrophy ? `Rumuński martwy ciąg (RDL)` : `Tempo ${dlName}`, tag: 'technical', liftType: 'deadlift', weightType: 'technical', fixedSets: 3, fixedReps: isHypertrophy ? 10 : 3, note: isHypertrophy ? 'Stretch w dole, kontrolowany ruch' : 'Tempo 3s ekscentryk' },
-        { name: 'Pause Bench Press', tag: 'technical', liftType: 'bench', weightType: 'technical', fixedSets: 3, fixedReps: 4, note: 'Pauza 1s na klatce' },
+        { name: isHypertrophy ? `Rumuński martwy ciąg (RDL)` : `Tempo ${dlName}`, tag: 'technical', liftType: 'deadlift', weightType: 'technical', fixedSets: 3, fixedReps: isHypertrophy ? 10 : 3, note: isHypertrophy ? 'Na dole poczuj pełne rozciągnięcie mięśni dwugłowych uda. Kontrolowane tempo w obu kierunkach.' : 'Opuszczaj sztangę przez 3 sekundy kontrolowanym ruchem. Utrzymuj proste plecy przez cały ruch.' },
+        { name: 'Pause Bench Press', tag: 'technical', liftType: 'bench', weightType: 'technical', fixedSets: 3, fixedReps: 4, note: 'Zatrzymaj sztangę na sekundę na klatce piersiowej. Nie odbijaj — buduje siłę wyciskania z martwego punktu.' },
         { name: 'Ściąganie drążka (Lat Pulldown)', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 12 : 10 },
-        { name: 'Rear Delt Fly', tag: 'accessory', fixedSets: 3, fixedReps: 15 },
+        { name: 'Rear Delt Fly', tag: 'accessory', fixedSets: 3, fixedReps: 15, note: 'Pochyl tułów do przodu. Unieś ramiona na boki prowadząc łokciami. Ściskaj łopatki na górze ruchu.' },
         ...(shortSession ? [] : [
           { name: 'Przywodzenie bioder (Hip Adduction)', tag: 'accessory' as const, fixedSets: 3, fixedReps: 15 },
         ]),
         ...(extraAccessories ? [
-          { name: 'Incline Dumbbell Curl', tag: 'accessory' as const, fixedSets: 3, fixedReps: 12, note: 'Stretch w dole' },
+          { name: 'Incline Dumbbell Curl', tag: 'accessory' as const, fixedSets: 3, fixedReps: 12, note: 'Opuść hantle do pełnego rozciągnięcia bicepsów. Kontrolowane tempo w obu kierunkach.' },
           { name: 'Hanging Leg Raise', tag: 'accessory' as const, fixedSets: 3, fixedReps: 12 },
         ] : []),
       ],
@@ -111,7 +111,7 @@ function getDefaultTemplates(settings: UserSettings): DayTemplate[] {
       focus: 'Ława ciężka + Przysiad wolumen',
       exercises: [
         { name: 'Wyciskanie leżąc (Bench Press)', tag: 'main', liftType: 'bench', weightType: 'topset', hasBackoff: true },
-        { name: isHypertrophy ? 'Incline Dumbbell Press' : 'Close Grip Bench', tag: 'technical', liftType: 'bench', weightType: 'technical', fixedSets: 3, fixedReps: isHypertrophy ? 10 : 5, note: isHypertrophy ? 'Stretch w dole' : 'Wąski chwyt' },
+        { name: isHypertrophy ? 'Incline Dumbbell Press' : 'Close Grip Bench', tag: 'technical', liftType: 'bench', weightType: 'technical', fixedSets: 3, fixedReps: isHypertrophy ? 10 : 5, note: isHypertrophy ? 'Opuść hantle do pełnego rozciągnięcia klatki piersiowej. Kontrolowane tempo wyciskania.' : 'Chwyć sztangę na szerokość ramion. Łokcie prowadź bliżej tułowia niż w standardowym chwycie.' },
         { name: 'Przysiad (Back Squat)', tag: 'volume', liftType: 'squat', weightType: 'volume' },
         { name: 'Rumuński martwy ciąg (RDL)', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 10 : 8 },
         { name: 'Seated Cable Row', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 12 : 10 },
@@ -120,7 +120,7 @@ function getDefaultTemplates(settings: UserSettings): DayTemplate[] {
         ]),
         ...(extraAccessories ? [
           { name: 'Lateral Raise', tag: 'accessory' as const, fixedSets: 3, fixedReps: 15 },
-          { name: 'Pallof Press', tag: 'accessory' as const, fixedSets: 3, fixedReps: 12, note: 'Naprzemienna strona' },
+          { name: 'Pallof Press', tag: 'accessory' as const, fixedSets: 3, fixedReps: 12, note: 'Stań bokiem do wyciągu i wypchnij uchwyt przed siebie. Nie pozwól, żeby ciężar obrócił tułów. Wykonaj po obu stronach.' },
         ] : []),
       ],
     },
@@ -132,8 +132,8 @@ function getDefaultTemplates(settings: UserSettings): DayTemplate[] {
       exercises: [
         { name: `Martwy ciąg ${dlName}`, tag: 'volume', liftType: 'deadlift', weightType: 'volume' },
         { name: isHypertrophy ? 'Bulgarian Split Squat' : 'Hack Squat / Leg Press', tag: 'supplemental', fixedSets: 3, fixedReps: isHypertrophy ? 10 : 10 },
-        { name: 'Podciąganie z obciążeniem', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 8 : 6, note: 'Dodaj obciążenie' },
-        { name: 'Seated Leg Curl', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 12 : 10, note: 'Stretch w dole' },
+        { name: 'Podciąganie z obciążeniem', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 8 : 6, note: 'Dodawaj obciążenie na pasie. Zacznij od pełnego wyprostu ramion, ciągnij aż broda znajdzie się nad drążkiem.' },
+        { name: 'Seated Leg Curl', tag: 'accessory', fixedSets: 3, fixedReps: isPowerbuilding || isHypertrophy ? 12 : 10, note: 'Na dole wyprostuj nogi do pełnego rozciągnięcia mięśni dwugłowych uda. Kontrolowany ruch bez rozpędu.' },
         { name: 'Przywodzenie bioder (Hip Adduction)', tag: 'accessory', fixedSets: 3, fixedReps: 15 },
         ...(shortSession ? [] : [
           { name: isHypertrophy ? 'Incline Dumbbell Curl' : 'Band Pull-apart', tag: 'accessory' as const, fixedSets: 3, fixedReps: isHypertrophy ? 12 : 20 },
@@ -156,6 +156,11 @@ function buildDayFromTemplate(
   maxes: OneRepMaxes
 ): WorkoutDay {
   const exercises: Exercise[] = template.exercises.map((tmpl) => {
+    // For main lifts, cap sets at reasonable values instead of using raw weekSets
+    const mainTopsetSets = Math.min(weekSets, 3); // max 3 topsets
+    const mainBackoffSets = Math.min(weekSets, 3); // max 3 backoff sets
+    const volumeSets = Math.min(weekSets, 4); // max 4 volume sets
+
     const ex: Exercise = {
       id: generateId(),
       name: tmpl.name,
@@ -172,16 +177,17 @@ function buildDayFromTemplate(
       const oneRM = maxes[tmpl.liftType];
       switch (tmpl.weightType) {
         case 'topset':
+          ex.plannedSets = tmpl.fixedSets ?? mainTopsetSets;
           ex.plannedWeight = getTopsetWeight(oneRM, percentage);
           if (tmpl.hasBackoff) {
             ex.isBackoff = true;
-            ex.backoffSets = tmpl.fixedSets ?? weekSets;
+            ex.backoffSets = tmpl.fixedSets ?? mainBackoffSets;
             ex.backoffReps = (tmpl.fixedReps ?? weekReps) + 2;
             ex.backoffWeight = getBackoffWeight(ex.plannedWeight);
           }
           break;
         case 'volume':
-          ex.plannedSets = (tmpl.fixedSets ?? weekSets) + (tmpl.tag === 'volume' && template.dayNumber === 4 ? 1 : 0);
+          ex.plannedSets = tmpl.fixedSets ?? volumeSets;
           ex.plannedReps = (tmpl.fixedReps ?? weekReps) + 1;
           ex.plannedWeight = getVolumeWeight(oneRM, percentage);
           break;
