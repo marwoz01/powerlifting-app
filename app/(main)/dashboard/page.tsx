@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Dumbbell, CheckCircle2, ArrowRight, ArrowLeft, Calendar } from 'lucide-react';
 import { getUserSettings, getProgram, getWorkoutLogs } from '@/lib/storage';
+import { AppTour } from '@/components/layout/AppTour';
 import { getWeekDays } from '@/lib/program-generator';
 import { PHASE_LABELS, PHASE_COLORS } from '@/lib/constants';
 import { getTrainingLevel, estimatedProgress } from '@/lib/calculations';
@@ -86,6 +87,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
+      <AppTour />
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Hej, {settings.profile.name}!</h1>
         <p className="text-sm text-muted-foreground">
@@ -94,7 +96,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Today's workout */}
-      <Card className={`mb-4 border ${phaseColors.border}`}>
+      <Card id="tour-workout" className={`mb-4 border ${phaseColors.border}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -161,7 +163,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* Progress */}
-      <div className="mb-4">
+      <div id="tour-progress" className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-medium">Postęp cyklu</p>
           <p className="text-sm text-muted-foreground">
@@ -172,7 +174,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Lift progress — hide for hypertrophy goal */}
-      {settings.goals.primary !== 'hypertrophy' && <Card className="mb-6">
+      {settings.goals.primary !== 'hypertrophy' && <Card id="tour-lifts" className="mb-6">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Progres siłowy</CardTitle>
         </CardHeader>
