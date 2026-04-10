@@ -81,6 +81,7 @@ export default function OnboardingPage() {
 
   const finish = async () => {
     setGenerating(true);
+    setStep(STEPS.length); // go to generating screen
 
     const finalSettings: UserSettings = {
       ...settings,
@@ -114,9 +115,42 @@ export default function OnboardingPage() {
 
     const program = generateProgram(finalSettings, aiTemplates ?? undefined);
     saveProgram(program);
-    setGenerating(false);
     router.push('/dashboard');
   };
+
+  if (generating) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
+        <div className="max-w-sm w-full text-center space-y-8">
+          <div className="relative">
+            <div className="inline-flex items-center justify-center size-20 rounded-full bg-primary/10 animate-pulse">
+              <Sparkles className="size-10 text-primary" />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h1 className="text-2xl font-bold">Tworzymy Twój plan</h1>
+            <p className="text-muted-foreground text-sm">
+              AI analizuje Twoje dane i przygotowuje spersonalizowany program treningowy...
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <Loader2 className="size-6 animate-spin text-primary" />
+          </div>
+
+          <div className="space-y-4 pt-4">
+            <p className="text-lg font-semibold text-primary">
+              Gotowy na nowe rekordy? 💪
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              &ldquo;Siła nie pochodzi z wygrywania. Twoje zmagania rozwijają siłę. Kiedy przechodzisz przez trudności i decydujesz się nie poddawać — to jest siła.&rdquo;
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -147,7 +181,7 @@ export default function OnboardingPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
         <div className="max-w-lg mx-auto flex gap-3">
           {step > 0 && (
-            <Button variant="outline" onClick={prev} size="lg" className="flex-1 h-12" disabled={generating}>
+            <Button variant="outline" onClick={prev} size="lg" className="flex-1 h-12">
               <ArrowLeft className="size-4 mr-1" />
               Wstecz
             </Button>
@@ -158,18 +192,9 @@ export default function OnboardingPage() {
               <ArrowRight className="size-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={finish} size="lg" className="flex-1 h-12" disabled={generating}>
-              {generating ? (
-                <>
-                  <Loader2 className="size-4 mr-1 animate-spin" />
-                  AI generuje plan...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="size-4 mr-1" />
-                  Generuj program
-                </>
-              )}
+            <Button onClick={finish} size="lg" className="flex-1 h-12">
+              <Sparkles className="size-4 mr-1" />
+              Generuj program
             </Button>
           )}
         </div>

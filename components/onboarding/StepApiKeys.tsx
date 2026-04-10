@@ -13,19 +13,16 @@ export function StepApiKeys() {
   const [geminiKey, setGeminiKey] = useState(() => getGeminiKey());
   const [showAnthropic, setShowAnthropic] = useState(false);
   const [showGemini, setShowGemini] = useState(false);
-  const [anthropicSaved, setAnthropicSaved] = useState(false);
-  const [geminiSaved, setGeminiSaved] = useState(false);
+  const [savedModal, setSavedModal] = useState<string | null>(null);
 
   const handleSaveAnthropic = () => {
     saveAnthropicKey(anthropicKey);
-    setAnthropicSaved(true);
-    setTimeout(() => setAnthropicSaved(false), 2000);
+    setSavedModal('Klucz Anthropic zapisany! AI będzie używać Claude Sonnet do generowania planów.');
   };
 
   const handleSaveGemini = () => {
     saveGeminiKey(geminiKey);
-    setGeminiSaved(true);
-    setTimeout(() => setGeminiSaved(false), 2000);
+    setSavedModal('Klucz Gemini zapisany! AI będzie używać Google Gemini do generowania planów.');
   };
 
   const hasAnyKey = anthropicKey || geminiKey;
@@ -72,13 +69,10 @@ export function StepApiKeys() {
                 {showAnthropic ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            <Button onClick={handleSaveAnthropic} size="lg" className="h-11">
-              {anthropicSaved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
+            <Button onClick={handleSaveAnthropic} size="lg" className="h-11" disabled={!anthropicKey}>
+              <Save className="size-4" />
             </Button>
           </div>
-          {anthropicKey && (
-            <Badge variant="secondary" className="text-xs">Klucz zapisany</Badge>
-          )}
         </CardContent>
       </Card>
 
@@ -112,13 +106,10 @@ export function StepApiKeys() {
                 {showGemini ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            <Button onClick={handleSaveGemini} size="lg" className="h-11">
-              {geminiSaved ? <CheckCircle2 className="size-4" /> : <Save className="size-4" />}
+            <Button onClick={handleSaveGemini} size="lg" className="h-11" disabled={!geminiKey}>
+              <Save className="size-4" />
             </Button>
           </div>
-          {geminiKey && (
-            <Badge variant="secondary" className="text-xs">Klucz zapisany</Badge>
-          )}
         </CardContent>
       </Card>
 
@@ -126,6 +117,19 @@ export function StepApiKeys() {
         <p className="text-xs text-muted-foreground text-center">
           Bez klucza API plan zostanie wygenerowany z domyślnych szablonów — bez personalizacji AI.
         </p>
+      )}
+
+      {savedModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-background rounded-xl shadow-xl p-6 max-w-sm w-full space-y-4 text-center">
+            <CheckCircle2 className="size-12 text-emerald-500 mx-auto" />
+            <h3 className="text-base font-semibold">Zapisano!</h3>
+            <p className="text-sm text-muted-foreground">{savedModal}</p>
+            <Button onClick={() => setSavedModal(null)} className="w-full h-11">
+              OK
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
