@@ -18,12 +18,15 @@ import {
   RotateCcw,
   Bot,
   Loader2,
+  Info,
+  X,
 } from 'lucide-react';
 import { getProgram, getWorkoutLog, saveWorkoutLog, getAnthropicKey, getApiKey, getGeminiKey, getUserSettings, runAutoregulation, getAccessoryProgress, saveAccessoryProgress, setActiveWorkout, clearActiveWorkout } from '@/lib/storage';
 import { updateAccessoryAfterWorkout, getSuggestedWeight } from '@/lib/accessory-progression';
 import type { AccessoryProgressionState } from '@/lib/types';
 import { getWeekDays } from '@/lib/program-generator';
 import { buildAnalysisPrompt } from '@/lib/ai-prompts';
+import { getExerciseNote } from '@/lib/exercise-notes';
 import { TAG_LABELS, TAG_COLORS, PHASE_LABELS, PHASE_COLORS } from '@/lib/constants';
 import type { GeneratedProgram, WorkoutDay, Exercise, WorkoutLog, LoggedSet } from '@/lib/types';
 
@@ -168,7 +171,9 @@ function ExerciseCard({
   suggestedWeight?: number | null;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [showInfo, setShowInfo] = useState(false);
 
+  const exerciseNote = exercise.note || getExerciseNote(exercise.name);
   const effectiveWeight = exercise.plannedWeight ?? suggestedWeight ?? 0;
 
   const topSets: Array<{ weight: number; reps: number }> = [];
@@ -204,6 +209,7 @@ function ExerciseCard({
   );
 
   return (
+    <>
     <Card className="mb-3">
       <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center justify-between">
@@ -212,6 +218,15 @@ function ExerciseCard({
               {TAG_LABELS[exercise.tag]}
             </Badge>
             <span className="text-sm font-medium truncate">{exercise.name}</span>
+            {exerciseNote && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
+                className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Info className="size-4" />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs text-muted-foreground">
@@ -225,9 +240,6 @@ function ExerciseCard({
 
       {expanded && (
         <CardContent className="pt-0">
-          {exercise.note && (
-            <p className="text-xs text-muted-foreground mb-2">{exercise.note}</p>
-          )}
           {!exercise.plannedWeight && suggestedWeight && suggestedWeight > 0 && (
             <p className="text-xs text-emerald-600 font-medium mb-2">
               Sugerowane: {suggestedWeight} kg
@@ -280,6 +292,21 @@ function ExerciseCard({
         </CardContent>
       )}
     </Card>
+
+      {showInfo && exerciseNote && (
+        <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-4" onClick={() => setShowInfo(false)}>
+          <div className="bg-background rounded-xl shadow-xl p-5 max-w-sm w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <h3 className="text-sm font-semibold pr-4">{exercise.name}</h3>
+              <button type="button" onClick={() => setShowInfo(false)} className="text-muted-foreground hover:text-foreground shrink-0">
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">{exerciseNote}</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
