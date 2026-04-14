@@ -30,52 +30,76 @@ import type {
   AccessoryProgressionState,
 } from '@/lib/types';
 import type { ActiveWorkout } from '@/lib/supabase-storage';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+class StorageUnavailableError extends Error {
+  constructor() {
+    super(
+      'Baza danych niedostępna — sprawdź połączenie internetowe i zaloguj się ponownie. ' +
+      'Jeśli problem się powtarza, skontaktuj się z administratorem (brak konfiguracji Supabase).'
+    );
+    this.name = 'StorageUnavailableError';
+  }
+}
+
+function requireSb(sb: SupabaseClient | null, userId: string): SupabaseClient {
+  if (!sb || !userId) {
+    const err = new StorageUnavailableError();
+    console.error('[useStorage] Attempted operation without Supabase client or user.', {
+      hasSb: !!sb,
+      hasUserId: !!userId,
+    });
+    throw err;
+  }
+  return sb;
+}
 
 export function useStorage() {
   const sb = useSupabaseClient();
   const { user } = useUser();
   const userId = user?.id ?? '';
+  const ready = !!user && !!sb;
 
   return {
     userId,
-    isReady: !!user && !!sb,
+    isReady: ready,
 
     // Settings
-    getUserSettings: () => sb ? getUserSettings(sb, userId) : Promise.resolve(null),
-    saveUserSettings: (s: UserSettings) => sb ? saveUserSettings(sb, userId, s) : Promise.resolve(),
-    isOnboardingComplete: () => sb ? isOnboardingComplete(sb, userId) : Promise.resolve(false),
+    getUserSettings: () => getUserSettings(requireSb(sb, userId), userId),
+    saveUserSettings: (s: UserSettings) => saveUserSettings(requireSb(sb, userId), userId, s),
+    isOnboardingComplete: () => isOnboardingComplete(requireSb(sb, userId), userId),
 
     // Program
-    getProgram: () => sb ? getProgram(sb, userId) : Promise.resolve(null),
-    saveProgram: (p: GeneratedProgram) => sb ? saveProgram(sb, userId, p) : Promise.resolve(),
+    getProgram: () => getProgram(requireSb(sb, userId), userId),
+    saveProgram: (p: GeneratedProgram) => saveProgram(requireSb(sb, userId), userId, p),
     swapExerciseInProgram: (oldName: string, newName: string, newNote?: string) =>
-      sb ? swapExerciseInProgram(sb, userId, oldName, newName, newNote) : Promise.resolve(),
+      swapExerciseInProgram(requireSb(sb, userId), userId, oldName, newName, newNote),
 
     // Workout Logs
-    getWorkoutLogs: () => sb ? getWorkoutLogs(sb, userId) : Promise.resolve([]),
-    saveWorkoutLog: (log: WorkoutLog) => sb ? saveWorkoutLog(sb, userId, log) : Promise.resolve(),
-    getWorkoutLog: (week: number, day: number) => sb ? getWorkoutLog(sb, userId, week, day) : Promise.resolve(null),
+    getWorkoutLogs: () => getWorkoutLogs(requireSb(sb, userId), userId),
+    saveWorkoutLog: (log: WorkoutLog) => saveWorkoutLog(requireSb(sb, userId), userId, log),
+    getWorkoutLog: (week: number, day: number) => getWorkoutLog(requireSb(sb, userId), userId, week, day),
 
     // History
-    archiveCurrentProgram: () => sb ? archiveCurrentProgram(sb, userId) : Promise.resolve(),
-    getProgramHistory: () => sb ? getProgramHistory(sb, userId) : Promise.resolve([]),
-    clearCurrentCycle: () => sb ? clearCurrentCycle(sb, userId) : Promise.resolve(),
+    archiveCurrentProgram: () => archiveCurrentProgram(requireSb(sb, userId), userId),
+    getProgramHistory: () => getProgramHistory(requireSb(sb, userId), userId),
+    clearCurrentCycle: () => clearCurrentCycle(requireSb(sb, userId), userId),
 
     // Accessory Progression
-    getAccessoryProgress: () => sb ? getAccessoryProgress(sb, userId) : Promise.resolve({}),
+    getAccessoryProgress: () => getAccessoryProgress(requireSb(sb, userId), userId),
     saveAccessoryProgress: (state: AccessoryProgressionState) =>
-      sb ? saveAccessoryProgress(sb, userId, state) : Promise.resolve(),
+      saveAccessoryProgress(requireSb(sb, userId), userId, state),
 
     // Active Workout
-    getActiveWorkout: () => sb ? getActiveWorkout(sb, userId) : Promise.resolve(null),
-    setActiveWorkout: (w: ActiveWorkout) => sb ? setActiveWorkout(sb, userId, w) : Promise.resolve(),
-    clearActiveWorkout: () => sb ? clearActiveWorkout(sb, userId) : Promise.resolve(),
+    getActiveWorkout: () => getActiveWorkout(requireSb(sb, userId), userId),
+    setActiveWorkout: (w: ActiveWorkout) => setActiveWorkout(requireSb(sb, userId), userId, w),
+    clearActiveWorkout: () => clearActiveWorkout(requireSb(sb, userId), userId),
 
     // API Keys (write-only)
     saveApiKeys: (keys: { anthropicKey?: string; openrouterKey?: string; geminiKey?: string }) =>
-      sb ? saveApiKeys(sb, userId, keys) : Promise.resolve(),
+      saveApiKeys(requireSb(sb, userId), userId, keys),
 
     // Autoregulation
-    runAutoregulation: (completedWeek: number) => sb ? runAutoregulation(sb, userId, completedWeek) : Promise.resolve(),
+    runAutoregulation: (completedWeek: number) => runAutoregulation(requireSb(sb, userId), userId, completedWeek),
   };
 }
